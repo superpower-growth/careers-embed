@@ -26,18 +26,51 @@
     update();
   }
 
-  // Open roles: live from Ashby, category filter, count sync. Falls back to static server-rendered rows on failure.
+  // Open roles: live from Ashby. Filter pills are derived from the actual departments in the data
+  // so they always match. Count syncs to hero + section. Static server-rendered rows/pills are the fallback.
   function roles() {
     var list = document.querySelector('[data-ashby-list]');
     if (!list) return;
     var counts = document.querySelectorAll('[data-ashby-count]');
-    var pills = [].slice.call(document.querySelectorAll('.careers_pill'));
+    var pillWrap = document.querySelector('.careers_pills');
     var active = 'all';
+    var pills = [];
+
     function applyFilter() {
       [].forEach.call(list.querySelectorAll('.careers_role-item'), function (a) {
         var d = a.getAttribute('data-dept') || '';
         a.style.display = (active === 'all' || d === active) ? '' : 'none';
       });
+    }
+    function wirePills() {
+      pills = [].slice.call(pillWrap ? pillWrap.querySelectorAll('.careers_pill') : []);
+      pills.forEach(function (p) {
+        p.addEventListener('click', function () {
+          active = p.getAttribute('data-filter') || 'all';
+          pills.forEach(function (x) { x.classList.toggle('is-active', x === p); });
+          applyFilter();
+        });
+      });
+    }
+    function buildPills(jobs) {
+      if (!pillWrap) { wirePills(); return; }
+      var seen = {}, order = [];
+      jobs.forEach(function (j) {
+        var label = ((j.department || j.team || '') + '').trim();
+        var s = slug(label);
+        if (s && !seen[s]) { seen[s] = label; order.push(s); }
+      });
+      pillWrap.innerHTML = '';
+      function mk(filter, label, on) {
+        var d = document.createElement('div');
+        d.className = 'careers_pill' + (on ? ' is-active' : '');
+        d.setAttribute('data-filter', filter);
+        d.textContent = label;
+        pillWrap.appendChild(d);
+      }
+      mk('all', 'All', true);
+      order.forEach(function (s) { mk(s, seen[s], false); });
+      wirePills();
     }
     function render(jobs) {
       list.innerHTML = '';
@@ -52,15 +85,11 @@
         a.appendChild(d); a.appendChild(tp); list.appendChild(a);
       });
       [].forEach.call(counts, function (c) { c.textContent = jobs.length; });
+      buildPills(jobs);
       applyFilter();
     }
-    pills.forEach(function (p) {
-      p.addEventListener('click', function () {
-        active = p.getAttribute('data-filter') || 'all';
-        pills.forEach(function (x) { x.classList.toggle('is-active', x === p); });
-        applyFilter();
-      });
-    });
+
+    wirePills(); // fallback: keep static pills functional if the fetch fails
     fetch(ASHBY).then(function (r) { return r.json(); })
       .then(function (d) { var jobs = (d.jobs || []).filter(function (j) { return j.isListed !== false; }); if (jobs.length) render(jobs); })
       .catch(function () { });
