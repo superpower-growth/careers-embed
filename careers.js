@@ -54,10 +54,10 @@
       var vh = window.innerHeight || document.documentElement.clientHeight;
       var p = (vh - r.top) / (vh + r.height); p = p < 0 ? 0 : (p > 1 ? 1 : p);
       var overhang = (SCALE - 1) * r.height / 2;          // px of image beyond each edge after scaling
-      return (p - 0.5) * 2 * overhang * 0.55;            // subtle travel — a fraction of the safe range
+      return (p - 0.5) * 2 * overhang * 0.4;             // subtle travel — a fraction of the safe range
     }
     function tick() {
-      current += (target - current) * 0.08;               // lerp → smooth, lagged parallax feel
+      current += (target - current) * 0.22;               // lerp → smoothing, snappy (low lag)
       img.style.transform = 'translate3d(0,' + current.toFixed(1) + 'px,0) scale(' + SCALE + ')';
       if (Math.abs(target - current) > 0.1) { raf = requestAnimationFrame(tick); } else { raf = null; }
     }
@@ -195,7 +195,7 @@
     targets.forEach(function (n) { prime(n, false); }); // hero = scale + blur
     if (targets[0]) void targets[0].offsetWidth;
     requestAnimationFrame(function () { requestAnimationFrame(function () {
-      targets.forEach(function (n, i) { play(n, 850, i * 160); });
+      targets.forEach(function (n) { play(n, 850, 0); }); // heading + paragraph reveal together
     }); });
   }
 
@@ -228,6 +228,17 @@
     }
   }
 
-  function boot() { parallax(); roles(); avatars(); heroReveal(); scrollReveal(); }
+  // Copy fix: keep "resume" off its own line by breaking the sentence after "exits."
+  function orphanFix() {
+    var ps = document.querySelectorAll('p.text-size-medium');
+    for (var i = 0; i < ps.length; i++) {
+      if (ps[i].innerHTML.indexOf('exits. We care') !== -1) {
+        ps[i].innerHTML = ps[i].innerHTML.replace('exits. We care', 'exits.<br>We care');
+        break;
+      }
+    }
+  }
+
+  function boot() { parallax(); roles(); avatars(); heroReveal(); scrollReveal(); orphanFix(); }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot, { once: true }); } else { boot(); }
 })();
