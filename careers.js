@@ -54,7 +54,7 @@
       var vh = window.innerHeight || document.documentElement.clientHeight;
       var p = (vh - r.top) / (vh + r.height); p = p < 0 ? 0 : (p > 1 ? 1 : p);
       var overhang = (SCALE - 1) * r.height / 2;          // px of image beyond each edge after scaling
-      return (p - 0.5) * 2 * overhang * 0.9;              // stay just inside the safe range
+      return (p - 0.5) * 2 * overhang * 0.55;            // subtle travel — a fraction of the safe range
     }
     function tick() {
       current += (target - current) * 0.08;               // lerp → smooth, lagged parallax feel
