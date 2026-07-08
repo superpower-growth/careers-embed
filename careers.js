@@ -37,21 +37,26 @@
     var img = m && m.querySelector('.careers_hero-media-img');
     if (!img) return;
     if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var SCALE = 1.35, ticking = false;
+    var SCALE = 1.5;                                      // more headroom → more visible travel
     img.style.willChange = 'transform';
-    function update() {
+    var target = 0, current = 0, raf = null;
+    function targetY() {
       var r = m.getBoundingClientRect();
       var vh = window.innerHeight || document.documentElement.clientHeight;
       var p = (vh - r.top) / (vh + r.height); p = p < 0 ? 0 : (p > 1 ? 1 : p);
       var overhang = (SCALE - 1) * r.height / 2;          // px of image beyond each edge after scaling
-      var y = (p - 0.5) * 2 * overhang * 0.9;             // stay just inside the safe range
-      img.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0) scale(' + SCALE + ')';
-      ticking = false;
+      return (p - 0.5) * 2 * overhang * 0.9;              // stay just inside the safe range
     }
-    function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(update); } }
+    function tick() {
+      current += (target - current) * 0.08;               // lerp → smooth, lagged parallax feel
+      img.style.transform = 'translate3d(0,' + current.toFixed(1) + 'px,0) scale(' + SCALE + ')';
+      if (Math.abs(target - current) > 0.1) { raf = requestAnimationFrame(tick); } else { raf = null; }
+    }
+    function onScroll() { target = targetY(); if (!raf) raf = requestAnimationFrame(tick); }
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
-    update();
+    target = current = targetY();
+    img.style.transform = 'translate3d(0,' + current.toFixed(1) + 'px,0) scale(' + SCALE + ')';
   }
 
   // Open roles: live from Ashby. Pills are derived from the actual departments in the data so they
@@ -88,10 +93,10 @@
     // Scattered, one-at-a-time reveal: each visible row eases in from a small random offset, staggered.
     function reveal(items) {
       items.forEach(function (a) {
-        var dx = (Math.random() * 48 - 24).toFixed(0), dy = (14 + Math.random() * 20).toFixed(0);
+        var dy = (14 + Math.random() * 20).toFixed(0);
         a.style.transition = 'none';
         a.style.opacity = '0';
-        a.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+        a.style.transform = 'translateY(' + dy + 'px)';
       });
       if (items[0]) void items[0].offsetWidth; // flush hidden state before transitioning
       items.forEach(function (a, i) {
