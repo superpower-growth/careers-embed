@@ -168,12 +168,16 @@
     }
 
     // Search box: live-filters the visible roles by title/department, combined with the active pill.
+    // Sits at the top of the filter column (above the pills) so it spans that column's width and
+    // survives list re-renders.
     (function () {
+      var anchor = pillWrap || list;
+      if (!anchor || !anchor.parentNode) return;
       var search = document.createElement('input');
       search.type = 'search'; search.className = 'careers_search';
       search.placeholder = 'Search open roles…';
       search.setAttribute('aria-label', 'Search open roles');
-      list.parentNode.insertBefore(search, list);
+      anchor.parentNode.insertBefore(search, anchor);
       search.addEventListener('input', function () { term = search.value.trim().toLowerCase(); commit(); });
     })();
 
