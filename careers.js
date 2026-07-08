@@ -78,7 +78,13 @@
     var pillWrap = document.querySelector('.careers_pills');
     var active = 'all';
     var pills = [];
+    var term = '';
 
+    function matches(a) {
+      var deptOk = active === 'all' || (a.getAttribute('data-dept') || '') === active;
+      var termOk = !term || (a.textContent || '').toLowerCase().indexOf(term) !== -1;
+      return deptOk && termOk;
+    }
     function setActive() {
       pills.forEach(function (x) { x.classList.toggle('is-active', (x.getAttribute('data-filter') || 'all') === active); });
     }
@@ -89,14 +95,11 @@
     }
     var reduceMo = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     function visibleItems() {
-      return [].filter.call(list.querySelectorAll('.careers_role-item'), function (a) {
-        return active === 'all' || (a.getAttribute('data-dept') || '') === active;
-      });
+      return [].filter.call(list.querySelectorAll('.careers_role-item'), matches);
     }
     function commit() {
       [].forEach.call(list.querySelectorAll('.careers_role-item'), function (a) {
-        var d = a.getAttribute('data-dept') || '';
-        a.style.display = (active === 'all' || d === active) ? '' : 'none';
+        a.style.display = matches(a) ? '' : 'none';
       });
     }
     // One-at-a-time reveal: each visible row scales/deblurs in, staggered.
@@ -164,6 +167,16 @@
       io.observe(list);
     }
 
+    // Search box: live-filters the visible roles by title/department, combined with the active pill.
+    (function () {
+      var search = document.createElement('input');
+      search.type = 'search'; search.className = 'careers_search';
+      search.placeholder = 'Search open roles…';
+      search.setAttribute('aria-label', 'Search open roles');
+      list.parentNode.insertBefore(search, list);
+      search.addEventListener('input', function () { term = search.value.trim().toLowerCase(); commit(); });
+    })();
+
     wirePills(); // fallback: keep static pills functional if the fetch fails
     fetch(ASHBY).then(function (r) { return r.json(); })
       .then(function (d) { var jobs = (d.jobs || []).filter(function (j) { return j.isListed !== false; }); if (jobs.length) render(jobs); })
@@ -228,14 +241,18 @@
     }
   }
 
-  // Copy fix: keep "resume" off its own line by breaking the sentence after "exits."
+  // Copy fix: break the sentence after "exits." (per design) and bind the last three words with
+  // non-breaking spaces so "resume." can never sit orphaned on its own line.
   function orphanFix() {
     var ps = document.querySelectorAll('p.text-size-medium');
     for (var i = 0; i < ps.length; i++) {
-      if (ps[i].innerHTML.indexOf('exits. We care') !== -1) {
-        ps[i].innerHTML = ps[i].innerHTML.replace('exits. We care', 'exits.<br>We care');
-        break;
-      }
+      var h = ps[i].innerHTML;
+      if (h.indexOf('figure exits') === -1) continue;
+      var nb = String.fromCharCode(160); // non-breaking space
+      h = h.replace('exits. We care', 'exits.<br>We care');
+      h = h.replace('than your resume', 'than' + nb + 'your' + nb + 'resume');
+      ps[i].innerHTML = h;
+      break;
     }
   }
 
