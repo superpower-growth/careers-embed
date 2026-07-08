@@ -73,18 +73,37 @@
       if (active === 'all') u.searchParams.delete('dept'); else u.searchParams.set('dept', active);
       history.replaceState(null, '', u);
     }
+    var reduceMo = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function visibleItems() {
+      return [].filter.call(list.querySelectorAll('.careers_role-item'), function (a) {
+        return active === 'all' || (a.getAttribute('data-dept') || '') === active;
+      });
+    }
+    function commit() {
+      [].forEach.call(list.querySelectorAll('.careers_role-item'), function (a) {
+        var d = a.getAttribute('data-dept') || '';
+        a.style.display = (active === 'all' || d === active) ? '' : 'none';
+      });
+    }
+    // Scattered, one-at-a-time reveal: each visible row eases in from a small random offset, staggered.
+    function reveal(items) {
+      items.forEach(function (a) {
+        var dx = (Math.random() * 48 - 24).toFixed(0), dy = (14 + Math.random() * 20).toFixed(0);
+        a.style.transition = 'none';
+        a.style.opacity = '0';
+        a.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      });
+      if (items[0]) void items[0].offsetWidth; // flush hidden state before transitioning
+      items.forEach(function (a, i) {
+        var d = i * 70;
+        a.style.transition = 'opacity .55s cubic-bezier(.22,1,.36,1) ' + d + 'ms, transform .55s cubic-bezier(.22,1,.36,1) ' + d + 'ms';
+        a.style.opacity = '1';
+        a.style.transform = 'none';
+      });
+    }
     function applyFilter(animate) {
-      function commit() {
-        [].forEach.call(list.querySelectorAll('.careers_role-item'), function (a) {
-          var d = a.getAttribute('data-dept') || '';
-          a.style.display = (active === 'all' || d === active) ? '' : 'none';
-        });
-      }
-      if (animate) {
-        list.style.transition = 'opacity .22s ease, transform .22s ease';
-        list.style.opacity = '0'; list.style.transform = 'translateY(8px)';
-        setTimeout(function () { commit(); list.style.opacity = '1'; list.style.transform = 'none'; }, 180);
-      } else { commit(); }
+      commit();
+      if (animate && !reduceMo) reveal(visibleItems());
     }
     function wirePills() {
       pills = [].slice.call(pillWrap ? pillWrap.querySelectorAll('.careers_pill') : []);
@@ -130,7 +149,15 @@
       // Deep-link: honor ?dept= if it matches a derived pill.
       var want = (new URLSearchParams(location.search).get('dept') || 'all').toLowerCase();
       if (pills.some(function (p) { return (p.getAttribute('data-filter') || '') === want; })) active = want;
-      setActive(); applyFilter(false);
+      setActive(); commit();
+      // First reveal: play the scattered stagger when the listing scrolls into view.
+      var shown = visibleItems();
+      if (reduceMo || !('IntersectionObserver' in window)) return;
+      shown.forEach(function (a) { a.style.opacity = '0'; }); // pre-hide to avoid a flash before reveal
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { io.disconnect(); reveal(shown); } });
+      }, { threshold: 0.12 });
+      io.observe(list);
     }
 
     wirePills(); // fallback: keep static pills functional if the fetch fails
