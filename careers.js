@@ -1,23 +1,27 @@
 /* superpower.com /careers page interactions — hosted via jsDelivr, applied to the page footer.
-   Wires DOM hooks already present in the built page. CSS lives in the Webflow page footer freeform block. */
+   Wires DOM hooks already present in the built page. CSS lives in the Webflow page freeform blocks. */
 (function () {
   'use strict';
   var ASHBY = 'https://api.ashbyhq.com/posting-api/job-board/superpower';
   var TEAM = ['Max Marchione, Founder', 'Hannah Ahn, Head of Design', 'Daniel Nemani, Product', 'Grace Guerrero, Designer'];
   function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); }
 
-  // Hero silhouette parallax on scroll.
+  // Hero silhouette parallax. Scales the image up so there is headroom to travel, then translates
+  // within that headroom on scroll — travel is derived from container height so it never reveals a gap.
   function parallax() {
     var m = document.querySelector('.careers_hero-media');
     var img = m && m.querySelector('.careers_hero-media-img');
     if (!img) return;
     if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var ticking = false;
+    var SCALE = 1.35, ticking = false;
+    img.style.willChange = 'transform';
     function update() {
       var r = m.getBoundingClientRect();
       var vh = window.innerHeight || document.documentElement.clientHeight;
       var p = (vh - r.top) / (vh + r.height); p = p < 0 ? 0 : (p > 1 ? 1 : p);
-      img.style.transform = 'translate3d(0,' + ((p - 0.5) * 140).toFixed(1) + 'px,0)';
+      var overhang = (SCALE - 1) * r.height / 2;          // px of image beyond each edge after scaling
+      var y = (p - 0.5) * 2 * overhang * 0.9;             // stay just inside the safe range
+      img.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0) scale(' + SCALE + ')';
       ticking = false;
     }
     function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(update); } }
@@ -26,8 +30,9 @@
     update();
   }
 
-  // Open roles: live from Ashby. Filter pills are derived from the actual departments in the data
-  // so they always match. Count syncs to hero + section. Static server-rendered rows/pills are the fallback.
+  // Open roles: live from Ashby. Pills are derived from the actual departments in the data so they
+  // always match. ?dept= deep-links/shares a filter. Count syncs to hero + section. Static rows/pills
+  // are the fallback if the fetch fails.
   function roles() {
     var list = document.querySelector('[data-ashby-list]');
     if (!list) return;
@@ -36,19 +41,33 @@
     var active = 'all';
     var pills = [];
 
-    function applyFilter() {
-      [].forEach.call(list.querySelectorAll('.careers_role-item'), function (a) {
-        var d = a.getAttribute('data-dept') || '';
-        a.style.display = (active === 'all' || d === active) ? '' : 'none';
-      });
+    function setActive() {
+      pills.forEach(function (x) { x.classList.toggle('is-active', (x.getAttribute('data-filter') || 'all') === active); });
+    }
+    function setUrl() {
+      var u = new URL(location.href);
+      if (active === 'all') u.searchParams.delete('dept'); else u.searchParams.set('dept', active);
+      history.replaceState(null, '', u);
+    }
+    function applyFilter(animate) {
+      function commit() {
+        [].forEach.call(list.querySelectorAll('.careers_role-item'), function (a) {
+          var d = a.getAttribute('data-dept') || '';
+          a.style.display = (active === 'all' || d === active) ? '' : 'none';
+        });
+      }
+      if (animate) {
+        list.style.transition = 'opacity .22s ease, transform .22s ease';
+        list.style.opacity = '0'; list.style.transform = 'translateY(8px)';
+        setTimeout(function () { commit(); list.style.opacity = '1'; list.style.transform = 'none'; }, 180);
+      } else { commit(); }
     }
     function wirePills() {
       pills = [].slice.call(pillWrap ? pillWrap.querySelectorAll('.careers_pill') : []);
       pills.forEach(function (p) {
         p.addEventListener('click', function () {
           active = p.getAttribute('data-filter') || 'all';
-          pills.forEach(function (x) { x.classList.toggle('is-active', x === p); });
-          applyFilter();
+          setActive(); setUrl(); applyFilter(true);
         });
       });
     }
@@ -61,15 +80,13 @@
         if (s && !seen[s]) { seen[s] = label; order.push(s); }
       });
       pillWrap.innerHTML = '';
-      function mk(filter, label, on) {
+      function mk(filter, label) {
         var d = document.createElement('div');
-        d.className = 'careers_pill' + (on ? ' is-active' : '');
-        d.setAttribute('data-filter', filter);
-        d.textContent = label;
+        d.className = 'careers_pill'; d.setAttribute('data-filter', filter); d.textContent = label;
         pillWrap.appendChild(d);
       }
-      mk('all', 'All', true);
-      order.forEach(function (s) { mk(s, seen[s], false); });
+      mk('all', 'All');
+      order.forEach(function (s) { mk(s, seen[s]); });
       wirePills();
     }
     function render(jobs) {
@@ -86,7 +103,10 @@
       });
       [].forEach.call(counts, function (c) { c.textContent = jobs.length; });
       buildPills(jobs);
-      applyFilter();
+      // Deep-link: honor ?dept= if it matches a derived pill.
+      var want = (new URLSearchParams(location.search).get('dept') || 'all').toLowerCase();
+      if (pills.some(function (p) { return (p.getAttribute('data-filter') || '') === want; })) active = want;
+      setActive(); applyFilter(false);
     }
 
     wirePills(); // fallback: keep static pills functional if the fetch fails
