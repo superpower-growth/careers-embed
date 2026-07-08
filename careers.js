@@ -183,6 +183,96 @@
     });
   }
 
-  function boot() { parallax(); roles(); avatars(); }
+  // Hero mask reveal: each heading line + the right-hand paragraph slide up from behind an
+  // overflow mask, fading in, slightly offset. Runs after fonts settle so line-splitting is correct.
+  function heroReveal() {
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var row = document.querySelector('.careers_hero-headline-row');
+    if (!row || reduce) return;
+    row.style.visibility = 'hidden'; // avoid a flash of unmasked text before we prime it
+    function masked(inner) {
+      var mask = document.createElement('span');
+      mask.style.display = 'block'; mask.style.overflow = 'hidden';
+      mask.style.paddingBottom = '0.12em'; mask.style.marginBottom = '-0.12em'; // protect descenders
+      inner.style.display = 'block';
+      return mask.appendChild(inner), mask;
+    }
+    function splitLines(el) {
+      var words = (el.textContent || '').trim().split(/\s+/);
+      el.textContent = '';
+      var probe = words.map(function (w, i) {
+        var s = document.createElement('span'); s.textContent = w + (i < words.length - 1 ? ' ' : '');
+        s.style.display = 'inline-block'; el.appendChild(s); return s;
+      });
+      var lines = [], cur = [], top = null;
+      probe.forEach(function (s) { var t = s.offsetTop; if (top !== null && Math.abs(t - top) > 3) { lines.push(cur); cur = []; } cur.push(s); top = t; });
+      if (cur.length) lines.push(cur);
+      el.textContent = '';
+      return lines.map(function (grp) {
+        var inner = document.createElement('span');
+        grp.forEach(function (s) { s.style.display = 'inline'; inner.appendChild(s); });
+        el.appendChild(masked(inner)); return inner;
+      });
+    }
+    function wrapWhole(el) {
+      var inner = document.createElement('span');
+      while (el.firstChild) inner.appendChild(el.firstChild);
+      el.appendChild(masked(inner)); return inner;
+    }
+    function build() {
+      var cols = row.querySelectorAll('.careers_hero-col');
+      var headingEl = cols[0] && (cols[0].querySelector('[class*="heading-style"]') || cols[0]);
+      var paraEl = cols[1] && (cols[1].querySelector('.careers_hero-intro') || cols[1]);
+      var targets = [];
+      if (headingEl) targets = targets.concat(splitLines(headingEl));
+      if (paraEl) targets.push(wrapWhole(paraEl));
+      targets.forEach(function (n) { n.style.transform = 'translateY(110%)'; n.style.opacity = '0'; n.style.willChange = 'transform,opacity'; });
+      row.style.visibility = '';
+      if (targets[0]) void targets[0].offsetWidth;
+      requestAnimationFrame(function () { requestAnimationFrame(function () {
+        targets.forEach(function (n, i) {
+          var d = i * 110;
+          n.style.transition = 'transform .7s cubic-bezier(.22,1,.36,1) ' + d + 'ms, opacity .7s cubic-bezier(.22,1,.36,1) ' + d + 'ms';
+          n.style.transform = 'none'; n.style.opacity = '1';
+        });
+      }); });
+    }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(build); else build();
+  }
+
+  // Scroll reveal: quick, snappy slide-up + fade, staggered. Used for the company block and the
+  // "how do we work?" rows. Each group triggers when its container scrolls into view.
+  function scrollReveal() {
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !('IntersectionObserver' in window)) return;
+    function group(trigger, nodes, stagger) {
+      nodes = [].slice.call(nodes);
+      if (!nodes.length) return;
+      nodes.forEach(function (n) { n.style.opacity = '0'; n.style.transform = 'translateY(16px)'; n.style.willChange = 'opacity,transform'; });
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) {
+          if (!e.isIntersecting) return; io.disconnect();
+          nodes.forEach(function (n, i) {
+            var d = i * stagger;
+            n.style.transition = 'opacity .45s cubic-bezier(.22,1,.36,1) ' + d + 'ms, transform .45s cubic-bezier(.22,1,.36,1) ' + d + 'ms';
+            n.style.opacity = '1'; n.style.transform = 'none';
+          });
+        });
+      }, { threshold: 0.18 });
+      io.observe(trigger);
+    }
+    var companyLabel = [].filter.call(document.querySelectorAll('.careers_col-label'), function (l) { return /the company/i.test(l.textContent); })[0];
+    var companyRow = companyLabel && companyLabel.closest('.careers_row');
+    if (companyRow) group(companyRow, companyRow.children, 80);
+    var hiw = document.querySelector('.careers_hiw');
+    if (hiw) {
+      var intro = hiw.querySelector('.careers_row');
+      if (intro) group(intro, intro.children, 80);
+      var list = hiw.querySelector('.careers_hiw-list');
+      if (list) group(list, list.querySelectorAll('.careers_hiw-item'), 60);
+    }
+  }
+
+  function boot() { parallax(); roles(); avatars(); heroReveal(); scrollReveal(); }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot, { once: true }); } else { boot(); }
 })();
