@@ -6,6 +6,30 @@
   var TEAM = ['Max Marchione, Founder', 'Hannah Ahn, Head of Design', 'Daniel Nemani, Product', 'Grace Guerrero, Designer'];
   function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); }
 
+  // Count-up: animate each node from 0 to target the first time it scrolls into view.
+  function animateCounts(nodes, target) {
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function run(el) {
+      if (reduce || !window.requestAnimationFrame) { el.textContent = target; return; }
+      el.textContent = '0';
+      var start = null, dur = 1200;
+      function step(ts) {
+        if (start === null) start = ts;
+        var t = Math.min(1, (ts - start) / dur), e = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(target * e);
+        if (t < 1) requestAnimationFrame(step); else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    }
+    [].forEach.call(nodes, function (el) {
+      if (!('IntersectionObserver' in window)) { run(el); return; }
+      var io = new IntersectionObserver(function (ents) {
+        ents.forEach(function (en) { if (en.isIntersecting) { io.disconnect(); run(el); } });
+      }, { threshold: 0.6 });
+      io.observe(el);
+    });
+  }
+
   // Hero silhouette parallax. Scales the image up so there is headroom to travel, then translates
   // within that headroom on scroll — travel is derived from container height so it never reveals a gap.
   function parallax() {
@@ -101,7 +125,7 @@
         var tp = document.createElement('p'); tp.className = 'text-size-medium'; tp.textContent = (j.title || '').trim();
         a.appendChild(d); a.appendChild(tp); list.appendChild(a);
       });
-      [].forEach.call(counts, function (c) { c.textContent = jobs.length; });
+      animateCounts(counts, jobs.length);
       buildPills(jobs);
       // Deep-link: honor ?dept= if it matches a derived pill.
       var want = (new URLSearchParams(location.search).get('dept') || 'all').toLowerCase();
