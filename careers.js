@@ -6,6 +6,15 @@
   var TEAM = ['Max Marchione, Founder', 'Hannah Ahn, Head of Design', 'Daniel Nemani, Product', 'Grace Guerrero, Designer'];
   function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); }
 
+  // Shared reveal: scale 1.1 -> 1, blur 5px -> 0, opacity 0 -> 1. prime() sets the hidden start state,
+  // play() transitions to the resting state after an optional delay.
+  function prime(n) { n.style.opacity = '0'; n.style.transform = 'scale(1.1)'; n.style.filter = 'blur(5px)'; n.style.willChange = 'opacity,transform,filter'; }
+  function play(n, dur, delay) {
+    var t = dur + 'ms cubic-bezier(.22,1,.36,1) ' + delay + 'ms';
+    n.style.transition = 'opacity ' + t + ', transform ' + t + ', filter ' + t;
+    n.style.opacity = '1'; n.style.transform = 'none'; n.style.filter = 'blur(0)';
+  }
+
   // Count-up: animate each node from 0 to target the first time it scrolls into view.
   function animateCounts(nodes, target) {
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -90,21 +99,11 @@
         a.style.display = (active === 'all' || d === active) ? '' : 'none';
       });
     }
-    // Scattered, one-at-a-time reveal: each visible row eases in from a small random offset, staggered.
+    // One-at-a-time reveal: each visible row scales/deblurs in, staggered.
     function reveal(items) {
-      items.forEach(function (a) {
-        var dy = (14 + Math.random() * 20).toFixed(0);
-        a.style.transition = 'none';
-        a.style.opacity = '0';
-        a.style.transform = 'translateY(' + dy + 'px)';
-      });
+      items.forEach(prime);
       if (items[0]) void items[0].offsetWidth; // flush hidden state before transitioning
-      items.forEach(function (a, i) {
-        var d = i * 70;
-        a.style.transition = 'opacity .55s cubic-bezier(.22,1,.36,1) ' + d + 'ms, transform .55s cubic-bezier(.22,1,.36,1) ' + d + 'ms';
-        a.style.opacity = '1';
-        a.style.transform = 'none';
-      });
+      items.forEach(function (a, i) { play(a, 550, i * 70); });
     }
     function applyFilter(animate) {
       commit();
@@ -183,64 +182,24 @@
     });
   }
 
-  // Hero mask reveal: each heading line + the right-hand paragraph slide up from behind an
-  // overflow mask, fading in, slightly offset. Runs after fonts settle so line-splitting is correct.
+  // Hero reveal: the heading and the right-hand paragraph block scale/deblur in, slightly offset.
+  // No text splitting — the heading markup (muted span + natural line breaks) is left intact.
   function heroReveal() {
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     var row = document.querySelector('.careers_hero-headline-row');
     if (!row || reduce) return;
-    row.style.visibility = 'hidden'; // avoid a flash of unmasked text before we prime it
-    function masked(inner) {
-      var mask = document.createElement('span');
-      mask.style.display = 'block'; mask.style.overflow = 'hidden';
-      mask.style.paddingBottom = '0.12em'; mask.style.marginBottom = '-0.12em'; // protect descenders
-      inner.style.display = 'block';
-      return mask.appendChild(inner), mask;
-    }
-    function splitLines(el) {
-      var words = (el.textContent || '').trim().split(/\s+/);
-      el.textContent = '';
-      var probe = words.map(function (w, i) {
-        var s = document.createElement('span'); s.textContent = w + (i < words.length - 1 ? ' ' : '');
-        s.style.display = 'inline-block'; el.appendChild(s); return s;
-      });
-      var lines = [], cur = [], top = null;
-      probe.forEach(function (s) { var t = s.offsetTop; if (top !== null && Math.abs(t - top) > 3) { lines.push(cur); cur = []; } cur.push(s); top = t; });
-      if (cur.length) lines.push(cur);
-      el.textContent = '';
-      return lines.map(function (grp) {
-        var inner = document.createElement('span');
-        grp.forEach(function (s) { s.style.display = 'inline'; inner.appendChild(s); });
-        el.appendChild(masked(inner)); return inner;
-      });
-    }
-    function wrapWhole(el) {
-      var inner = document.createElement('span');
-      while (el.firstChild) inner.appendChild(el.firstChild);
-      el.appendChild(masked(inner)); return inner;
-    }
-    function build() {
-      var cols = row.querySelectorAll('.careers_hero-col');
-      var headingEl = cols[0] && (cols[0].querySelector('[class*="heading-style"]') || cols[0]);
-      var paraEl = cols[1] && (cols[1].querySelector('.careers_hero-intro') || cols[1]);
-      var targets = [];
-      if (headingEl) targets = targets.concat(splitLines(headingEl));
-      if (paraEl) targets.push(wrapWhole(paraEl));
-      targets.forEach(function (n) { n.style.transform = 'translateY(110%)'; n.style.opacity = '0'; n.style.willChange = 'transform,opacity'; });
-      row.style.visibility = '';
-      if (targets[0]) void targets[0].offsetWidth;
-      requestAnimationFrame(function () { requestAnimationFrame(function () {
-        targets.forEach(function (n, i) {
-          var d = i * 110;
-          n.style.transition = 'transform .7s cubic-bezier(.22,1,.36,1) ' + d + 'ms, opacity .7s cubic-bezier(.22,1,.36,1) ' + d + 'ms';
-          n.style.transform = 'none'; n.style.opacity = '1';
-        });
-      }); });
-    }
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(build); else build();
+    var cols = row.querySelectorAll('.careers_hero-col');
+    var heading = cols[0] && (cols[0].querySelector('[class*="heading-style"]') || cols[0]);
+    var intro = cols[1] && (cols[1].querySelector('.careers_hero-intro') || cols[1]);
+    var targets = [heading, intro].filter(Boolean);
+    targets.forEach(prime);
+    if (targets[0]) void targets[0].offsetWidth;
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      targets.forEach(function (n, i) { play(n, 700, i * 140); });
+    }); });
   }
 
-  // Scroll reveal: quick, snappy slide-up + fade, staggered. Used for the company block and the
+  // Scroll reveal: quick, snappy scale/deblur, staggered. Used for the company block and the
   // "how do we work?" rows. Each group triggers when its container scrolls into view.
   function scrollReveal() {
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -248,15 +207,11 @@
     function group(trigger, nodes, stagger) {
       nodes = [].slice.call(nodes);
       if (!nodes.length) return;
-      nodes.forEach(function (n) { n.style.opacity = '0'; n.style.transform = 'translateY(16px)'; n.style.willChange = 'opacity,transform'; });
+      nodes.forEach(prime);
       var io = new IntersectionObserver(function (es) {
         es.forEach(function (e) {
           if (!e.isIntersecting) return; io.disconnect();
-          nodes.forEach(function (n, i) {
-            var d = i * stagger;
-            n.style.transition = 'opacity .45s cubic-bezier(.22,1,.36,1) ' + d + 'ms, transform .45s cubic-bezier(.22,1,.36,1) ' + d + 'ms';
-            n.style.opacity = '1'; n.style.transform = 'none';
-          });
+          nodes.forEach(function (n, i) { play(n, 450, i * stagger); });
         });
       }, { threshold: 0.18 });
       io.observe(trigger);
