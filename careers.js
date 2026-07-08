@@ -6,9 +6,9 @@
   var TEAM = ['Max Marchione, Founder', 'Hannah Ahn, Head of Design', 'Daniel Nemani, Product', 'Grace Guerrero, Designer'];
   function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); }
 
-  // Shared reveal: scale 1.1 -> 1, blur 5px -> 0, opacity 0 -> 1. prime() sets the hidden start state,
-  // play() transitions to the resting state after an optional delay.
-  function prime(n) { n.style.opacity = '0'; n.style.transform = 'scale(1.1)'; n.style.filter = 'blur(5px)'; n.style.willChange = 'opacity,transform,filter'; }
+  // Shared reveal: blur 5px -> 0, opacity 0 -> 1, plus either a slide up from below (slide=true) or a
+  // scale down from 1.1 (hero). prime() sets the hidden start state, play() transitions to rest.
+  function prime(n, slide) { n.style.opacity = '0'; n.style.transform = slide ? 'translateY(24px)' : 'scale(1.1)'; n.style.filter = 'blur(5px)'; n.style.willChange = 'opacity,transform,filter'; }
   function play(n, dur, delay) {
     var t = dur + 'ms cubic-bezier(.22,1,.36,1) ' + delay + 'ms';
     n.style.transition = 'opacity ' + t + ', transform ' + t + ', filter ' + t;
@@ -101,9 +101,9 @@
     }
     // One-at-a-time reveal: each visible row scales/deblurs in, staggered.
     function reveal(items) {
-      items.forEach(prime);
+      items.forEach(function (a) { prime(a, true); });
       if (items[0]) void items[0].offsetWidth; // flush hidden state before transitioning
-      items.forEach(function (a, i) { play(a, 550, i * 70); });
+      items.forEach(function (a, i) { play(a, 650, i * 70); });
     }
     function applyFilter(animate) {
       commit();
@@ -192,10 +192,10 @@
     var heading = cols[0] && (cols[0].querySelector('[class*="heading-style"]') || cols[0]);
     var intro = cols[1] && (cols[1].querySelector('.careers_hero-intro') || cols[1]);
     var targets = [heading, intro].filter(Boolean);
-    targets.forEach(prime);
+    targets.forEach(function (n) { prime(n, false); }); // hero = scale + blur
     if (targets[0]) void targets[0].offsetWidth;
     requestAnimationFrame(function () { requestAnimationFrame(function () {
-      targets.forEach(function (n, i) { play(n, 700, i * 140); });
+      targets.forEach(function (n, i) { play(n, 850, i * 160); });
     }); });
   }
 
@@ -207,11 +207,11 @@
     function group(trigger, nodes, stagger) {
       nodes = [].slice.call(nodes);
       if (!nodes.length) return;
-      nodes.forEach(prime);
+      nodes.forEach(function (n) { prime(n, true); }); // company + how-we-work = slide up + blur
       var io = new IntersectionObserver(function (es) {
         es.forEach(function (e) {
           if (!e.isIntersecting) return; io.disconnect();
-          nodes.forEach(function (n, i) { play(n, 450, i * stagger); });
+          nodes.forEach(function (n, i) { play(n, 620, i * stagger); });
         });
       }, { threshold: 0.18 });
       io.observe(trigger);
