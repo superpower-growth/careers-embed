@@ -63,6 +63,37 @@
     var active = 'all';
     var pills = [];
     var term = '';
+    var rawTerm = '';
+    var searchInput = null;
+
+    // Empty state, shown when no role survives the current pill + search. Lives inside the list so it
+    // sits where the rows would be; render() removes only the rows, never this node.
+    var empty = document.createElement('div');
+    empty.className = 'careers_empty';
+    empty.hidden = true;
+    empty.setAttribute('role', 'status');
+    empty.setAttribute('aria-live', 'polite');
+    list.appendChild(empty);
+
+    function renderEmpty(count) {
+      if (count > 0) { empty.hidden = true; return; }
+      empty.hidden = false;
+      empty.innerHTML = '';
+      var p = document.createElement('p');
+      p.className = 'text-size-medium careers_text-muted';
+      p.textContent = rawTerm
+        ? 'No roles match “' + rawTerm + '”.'
+        : 'No open roles in this area right now.';
+      empty.appendChild(p);
+      if (rawTerm && searchInput) {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'careers_empty-clear'; btn.textContent = 'Clear search';
+        btn.addEventListener('click', function () {
+          searchInput.value = ''; term = ''; rawTerm = ''; commit(); searchInput.focus();
+        });
+        empty.appendChild(btn);
+      }
+    }
 
     function matches(a) {
       var deptOk = active === 'all' || (a.getAttribute('data-dept') || '') === active;
@@ -82,9 +113,13 @@
       return [].filter.call(list.querySelectorAll('.careers_role-item'), matches);
     }
     function commit() {
+      var count = 0;
       [].forEach.call(list.querySelectorAll('.careers_role-item'), function (a) {
-        a.style.display = matches(a) ? '' : 'none';
+        var ok = matches(a);
+        a.style.display = ok ? '' : 'none';
+        if (ok) count++;
       });
+      renderEmpty(count);
     }
     // One-at-a-time reveal: each visible row slides/deblurs in, staggered.
     function reveal(items) {
@@ -124,7 +159,7 @@
       wirePills();
     }
     function render(jobs) {
-      list.innerHTML = '';
+      [].slice.call(list.querySelectorAll('.careers_role-item')).forEach(function (n) { n.remove(); });
       jobs.forEach(function (j) {
         var dept = ((j.department || j.team || '') + '').trim();
         var a = document.createElement('a');
@@ -135,6 +170,7 @@
         var tp = document.createElement('p'); tp.className = 'text-size-medium'; tp.textContent = (j.title || '').trim();
         a.appendChild(d); a.appendChild(tp); list.appendChild(a);
       });
+      list.appendChild(empty); // keep the empty state below the rows
       // Count is set straight to its value — no count-up animation (design feedback).
       [].forEach.call(counts, function (el) { el.textContent = jobs.length; });
       buildPills(jobs);
@@ -168,7 +204,12 @@
       search.setAttribute('aria-label', 'Search roles');
       wrap.appendChild(search);
       anchor.parentNode.insertBefore(wrap, anchor);
-      search.addEventListener('input', function () { term = search.value.trim().toLowerCase(); commit(); });
+      searchInput = search;
+      search.addEventListener('input', function () {
+        rawTerm = search.value.trim();
+        term = rawTerm.toLowerCase();
+        commit();
+      });
     })();
 
     wirePills(); // fallback: keep static pills functional if the fetch fails
