@@ -307,8 +307,16 @@
     if (!apply()) setTimeout(apply, 400);
   }
 
+  // On mobile the hero box is portrait, so `cover` renders the image at roughly twice its CSS width.
+  // Widen `sizes` so the browser picks a large enough srcset candidate instead of upscaling a small one.
+  function heroImage() {
+    var img = document.querySelector('.careers_hero-media-img');
+    if (!img || !window.matchMedia) return;
+    if (matchMedia('(max-width: 767px)').matches) img.sizes = '200vw';
+  }
+
   function boot() {
-    copyFixes(); viewRolesArrow(); parallax(); roles(); avatars();
+    copyFixes(); viewRolesArrow(); heroImage(); parallax(); roles(); avatars();
     heroReveal(); scrollReveal(); contactCard();
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot, { once: true }); } else { boot(); }
