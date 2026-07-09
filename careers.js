@@ -27,6 +27,9 @@
     var img = m && m.querySelector('.careers_hero-media-img');
     if (!img) return;
     if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // No parallax on mobile: the scale needed for headroom zooms the portrait crop past the subject's
+    // head, and the design shows a plain cover crop there.
+    if (window.matchMedia && matchMedia('(max-width: 767px)').matches) { img.style.transform = 'none'; return; }
     var SCALE = 1.5;                                      // more headroom → more visible travel
     img.style.willChange = 'transform';
     var target = 0, current = 0, raf = null;
