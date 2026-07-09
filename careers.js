@@ -6,37 +6,18 @@
   var TEAM = ['Max Marchione, Founder', 'Hannah Ahn, Head of Design', 'Daniel Nemani, Product', 'Grace Guerrero, Designer'];
   function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); }
 
-  // Shared reveal: blur 5px -> 0, opacity 0 -> 1, plus either a slide up from below (slide=true) or a
-  // scale down from 1.1 (hero). prime() sets the hidden start state, play() transitions to rest.
-  function prime(n, slide) { n.style.opacity = '0'; n.style.transform = slide ? 'translateY(24px)' : 'scale(1.1)'; n.style.filter = 'blur(5px)'; n.style.willChange = 'opacity,transform,filter'; }
+  // Shared reveal: slide up from `dy` px + blur 5px -> 0 + fade in. No scale — scaling a full-width
+  // element overflows the viewport on mobile, and the design calls for a y-move only.
+  function prime(n, dy) {
+    n.style.opacity = '0';
+    n.style.transform = 'translateY(' + (dy || 24) + 'px)';
+    n.style.filter = 'blur(5px)';
+    n.style.willChange = 'opacity,transform,filter';
+  }
   function play(n, dur, delay) {
     var t = dur + 'ms cubic-bezier(.22,1,.36,1) ' + delay + 'ms';
     n.style.transition = 'opacity ' + t + ', transform ' + t + ', filter ' + t;
     n.style.opacity = '1'; n.style.transform = 'none'; n.style.filter = 'blur(0)';
-  }
-
-  // Count-up: animate each node from 0 to target the first time it scrolls into view.
-  function animateCounts(nodes, target) {
-    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    function run(el) {
-      if (reduce || !window.requestAnimationFrame) { el.textContent = target; return; }
-      el.textContent = '0';
-      var start = null, dur = 1200;
-      function step(ts) {
-        if (start === null) start = ts;
-        var t = Math.min(1, (ts - start) / dur), e = 1 - Math.pow(1 - t, 3);
-        el.textContent = Math.round(target * e);
-        if (t < 1) requestAnimationFrame(step); else el.textContent = target;
-      }
-      requestAnimationFrame(step);
-    }
-    [].forEach.call(nodes, function (el) {
-      if (!('IntersectionObserver' in window)) { run(el); return; }
-      var io = new IntersectionObserver(function (ents) {
-        ents.forEach(function (en) { if (en.isIntersecting) { io.disconnect(); run(el); } });
-      }, { threshold: 0.6 });
-      io.observe(el);
-    });
   }
 
   // Hero silhouette parallax. Scales the image up so there is headroom to travel, then translates
@@ -102,9 +83,9 @@
         a.style.display = matches(a) ? '' : 'none';
       });
     }
-    // One-at-a-time reveal: each visible row scales/deblurs in, staggered.
+    // One-at-a-time reveal: each visible row slides/deblurs in, staggered.
     function reveal(items) {
-      items.forEach(function (a) { prime(a, true); });
+      items.forEach(function (a) { prime(a, 24); });
       if (items[0]) void items[0].offsetWidth; // flush hidden state before transitioning
       items.forEach(function (a, i) { play(a, 650, i * 70); });
     }
@@ -151,13 +132,14 @@
         var tp = document.createElement('p'); tp.className = 'text-size-medium'; tp.textContent = (j.title || '').trim();
         a.appendChild(d); a.appendChild(tp); list.appendChild(a);
       });
-      animateCounts(counts, jobs.length);
+      // Count is set straight to its value — no count-up animation (design feedback).
+      [].forEach.call(counts, function (el) { el.textContent = jobs.length; });
       buildPills(jobs);
       // Deep-link: honor ?dept= if it matches a derived pill.
       var want = (new URLSearchParams(location.search).get('dept') || 'all').toLowerCase();
       if (pills.some(function (p) { return (p.getAttribute('data-filter') || '') === want; })) active = want;
       setActive(); commit();
-      // First reveal: play the scattered stagger when the listing scrolls into view.
+      // First reveal: play the stagger when the listing scrolls into view.
       var shown = visibleItems();
       if (reduceMo || !('IntersectionObserver' in window)) return;
       shown.forEach(function (a) { a.style.opacity = '0'; }); // pre-hide to avoid a flash before reveal
@@ -168,16 +150,21 @@
     }
 
     // Search box: live-filters the visible roles by title/department, combined with the active pill.
-    // Sits at the top of the filter column (above the pills) so it spans that column's width and
-    // survives list re-renders.
+    // Sits at the top of the filter column (above the pills), with a leading magnifier per the design.
     (function () {
       var anchor = pillWrap || list;
       if (!anchor || !anchor.parentNode) return;
+      var wrap = document.createElement('div');
+      wrap.className = 'careers_search-wrap';
+      wrap.innerHTML = '<svg class="careers_search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle>' +
+        '<path d="M20 20l-3.6-3.6"></path></svg>';
       var search = document.createElement('input');
       search.type = 'search'; search.className = 'careers_search';
-      search.placeholder = 'Search open roles…';
-      search.setAttribute('aria-label', 'Search open roles');
-      anchor.parentNode.insertBefore(search, anchor);
+      search.placeholder = 'Search roles';
+      search.setAttribute('aria-label', 'Search roles');
+      wrap.appendChild(search);
+      anchor.parentNode.insertBefore(wrap, anchor);
       search.addEventListener('input', function () { term = search.value.trim().toLowerCase(); commit(); });
     })();
 
@@ -187,7 +174,8 @@
       .catch(function () { });
   }
 
-  // Meet the team: wrap each avatar and inject a name+title tooltip (hover styling is CSS).
+  // Meet the team: wrap each avatar, inject a name+title tooltip, and on hover push the neighbouring
+  // avatars away from the hovered one (rather than scaling it) — matches the Figma prototype.
   function avatars() {
     [].slice.call(document.querySelectorAll('.careers_team-avatar')).forEach(function (av, i) {
       if (av.parentNode && av.parentNode.classList && av.parentNode.classList.contains('careers_av-wrap')) return;
@@ -197,10 +185,28 @@
       var t = document.createElement('span'); t.className = 'careers_av-tooltip';
       t.textContent = TEAM[i] || av.getAttribute('alt') || ''; wrap.appendChild(t);
     });
+    var wraps = [].slice.call(document.querySelectorAll('.careers_av-wrap'));
+    var SHIFT = 8; // px each neighbour moves away from the hovered avatar
+    function imgOf(w) { return w.querySelector('.careers_team-avatar'); }
+    wraps.forEach(function (w, i) {
+      w.addEventListener('mouseenter', function () {
+        wraps.forEach(function (o, j) {
+          var img = imgOf(o); if (!img) return;
+          var dx = j < i ? -SHIFT : (j > i ? SHIFT : 0);
+          img.style.transform = 'translateX(' + dx + 'px)';
+          o.style.zIndex = j === i ? '3' : '';
+        });
+      });
+      w.addEventListener('mouseleave', function () {
+        wraps.forEach(function (o) {
+          var img = imgOf(o); if (img) img.style.transform = '';
+          o.style.zIndex = '';
+        });
+      });
+    });
   }
 
-  // Hero reveal: the heading and the right-hand paragraph block scale/deblur in, slightly offset.
-  // No text splitting — the heading markup (muted span + natural line breaks) is left intact.
+  // Hero reveal: heading and the right-hand paragraph block move up 16px, deblur and fade in together.
   function heroReveal() {
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     var row = document.querySelector('.careers_hero-headline-row');
@@ -209,22 +215,21 @@
     var heading = cols[0] && (cols[0].querySelector('[class*="heading-style"]') || cols[0]);
     var intro = cols[1] && (cols[1].querySelector('.careers_hero-intro') || cols[1]);
     var targets = [heading, intro].filter(Boolean);
-    targets.forEach(function (n) { prime(n, false); }); // hero = scale + blur
+    targets.forEach(function (n) { prime(n, 16); });
     if (targets[0]) void targets[0].offsetWidth;
     requestAnimationFrame(function () { requestAnimationFrame(function () {
       targets.forEach(function (n) { play(n, 850, 0); }); // heading + paragraph reveal together
     }); });
   }
 
-  // Scroll reveal: quick, snappy scale/deblur, staggered. Used for the company block and the
-  // "how do we work?" rows. Each group triggers when its container scrolls into view.
+  // Scroll reveal: quick, snappy slide-up + deblur, staggered, for the company block and "how do we work?".
   function scrollReveal() {
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce || !('IntersectionObserver' in window)) return;
     function group(trigger, nodes, stagger) {
       nodes = [].slice.call(nodes);
       if (!nodes.length) return;
-      nodes.forEach(function (n) { prime(n, true); }); // company + how-we-work = slide up + blur
+      nodes.forEach(function (n) { prime(n, 24); });
       var io = new IntersectionObserver(function (es) {
         es.forEach(function (e) {
           if (!e.isIntersecting) return; io.disconnect();
@@ -245,21 +250,63 @@
     }
   }
 
-  // Copy fix: break the sentence after "exits." (per design) and bind the last three words with
-  // non-breaking spaces so "resume." can never sit orphaned on its own line.
-  function orphanFix() {
-    var ps = document.querySelectorAll('p.text-size-medium');
-    for (var i = 0; i < ps.length; i++) {
-      var h = ps[i].innerHTML;
-      if (h.indexOf('figure exits') === -1) continue;
-      var nb = String.fromCharCode(160); // non-breaking space
-      h = h.replace('exits. We care', 'exits.<br>We care');
-      h = h.replace('than your resume', 'than' + nb + 'your' + nb + 'resume');
-      ps[i].innerHTML = h;
-      break;
+  // Copy fixes, all per the design:
+  //  - hero H1 breaks after the muted "Our mission is to" so "enhance" starts line 2
+  //  - "You can read about our culture here." and "In short, ..." sit on separate lines
+  //  - "...8 figure exits." breaks before "We care...", and the last words are bound with
+  //    non-breaking spaces so "resume." can never sit orphaned on its own line
+  function copyFixes() {
+    var h = document.querySelector('.careers_hero-headline-row [class*="heading-style"]');
+    var muted = h && h.querySelector('.careers_text-muted');
+    if (muted && !(muted.nextSibling && muted.nextSibling.nodeName === 'BR')) {
+      h.insertBefore(document.createElement('br'), muted.nextSibling);
     }
+    var ps = document.querySelectorAll('p.text-size-medium');
+    var nb = String.fromCharCode(160); // non-breaking space
+    [].forEach.call(ps, function (p) {
+      var s = p.innerHTML;
+      if (s.indexOf('figure exits') !== -1) {
+        s = s.replace('exits. We care', 'exits.<br>We care');
+        s = s.replace('than your resume', 'than' + nb + 'your' + nb + 'resume');
+        p.innerHTML = s;
+      } else if (s.indexOf('read about our culture') !== -1 && s.indexOf('In short') !== -1) {
+        p.innerHTML = s.replace(/\.\s+In short/, '.<br>In short');
+      } else if (s.indexOf('open to anyone great') !== -1 && s.indexOf('We often') !== -1) {
+        p.innerHTML = s.replace(/\.\s+We often/, '.<br>We often'); // roles panel copy sits on 2 lines
+      }
+    });
   }
 
-  function boot() { parallax(); roles(); avatars(); heroReveal(); scrollReveal(); orphanFix(); }
+  // Hero "View roles →": isolate the arrow so it can slide on hover (CSS handles the transition).
+  function viewRolesArrow() {
+    var a = document.querySelector('.careers_hero-view-roles');
+    if (!a || a.querySelector('.careers_arrow')) return;
+    a.innerHTML = a.innerHTML.replace(/→/, '<span class="careers_arrow">→</span>');
+  }
+
+  // Contact card: the paper-plane belongs on the right of the card and filled, not stacked above the
+  // copy as an outline. The icon itself is injected by the separate careersPaperPlaneIcon script, so
+  // retry once in case it lands after us.
+  function contactCard() {
+    function apply() {
+      var card = document.querySelector('.careers_contact-card');
+      var svg = card && card.querySelector('svg');
+      if (!svg) return false;
+      svg.removeAttribute('style');
+      svg.setAttribute('fill', 'currentColor');
+      svg.setAttribute('stroke', 'none');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.innerHTML = '<path d="M22 2L15 22L11 13L2 9L22 2Z"></path>';
+      svg.setAttribute('class', 'careers_contact-icon');
+      card.appendChild(svg); // card is flex + space-between → icon lands right, vertically centred
+      return true;
+    }
+    if (!apply()) setTimeout(apply, 400);
+  }
+
+  function boot() {
+    copyFixes(); viewRolesArrow(); parallax(); roles(); avatars();
+    heroReveal(); scrollReveal(); contactCard();
+  }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot, { once: true }); } else { boot(); }
 })();
