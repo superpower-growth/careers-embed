@@ -230,8 +230,29 @@
       t.textContent = TEAM[i] || av.getAttribute('alt') || ''; wrap.appendChild(t);
     });
     var wraps = [].slice.call(document.querySelectorAll('.careers_av-wrap'));
-    var SHIFT = 8; // px each neighbour moves away from the hovered avatar
+    var touch = window.matchMedia && matchMedia('(hover: none)').matches;
     function imgOf(w) { return w.querySelector('.careers_team-avatar'); }
+    if (touch) {
+      // Tap: black outline on the tapped avatar, others grey out, name pill lands on the
+      // left of the team pill (CSS in the footer freeform block). Tap again / outside clears.
+      var pill = document.querySelector('.careers_team-pill');
+      if (!pill) return;
+      var clearOpen = function () {
+        pill.classList.remove('has-open');
+        wraps.forEach(function (w) { w.classList.remove('is-open'); });
+      };
+      wraps.forEach(function (w) {
+        w.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var was = w.classList.contains('is-open');
+          clearOpen();
+          if (!was) { w.classList.add('is-open'); pill.classList.add('has-open'); }
+        });
+      });
+      document.addEventListener('click', function (e) { if (!pill.contains(e.target)) clearOpen(); });
+      return;
+    }
+    var SHIFT = 8; // px each neighbour moves away from the hovered avatar
     wraps.forEach(function (w, i) {
       w.addEventListener('mouseenter', function () {
         wraps.forEach(function (o, j) {
@@ -297,8 +318,8 @@
   // Copy fixes, all per the design:
   //  - hero H1 breaks after the muted "Our mission is to" so "enhance" starts line 2
   //  - "You can read about our culture here." and "In short, ..." sit on separate lines
-  //  - "...8 figure exits." breaks before "We care...", and the last words are bound with
-  //    non-breaking spaces so "resume." can never sit orphaned on its own line
+  //  - the last words of "...than your resume." are bound with non-breaking spaces so
+  //    "resume." can never sit orphaned on its own line (no break after "exits." — R2)
   function copyFixes() {
     var h = document.querySelector('.careers_hero-headline-row [class*="heading-style"]');
     var muted = h && h.querySelector('.careers_text-muted');
@@ -310,7 +331,7 @@
     [].forEach.call(ps, function (p) {
       var s = p.innerHTML;
       if (s.indexOf('figure exits') !== -1) {
-        s = s.replace('exits. We care', 'exits.<br>We care');
+        s = s.replace('exits.<br>We care', 'exits. We care'); // undo the break if the static markup kept it
         s = s.replace('than your resume', 'than' + nb + 'your' + nb + 'resume');
         p.innerHTML = s;
       } else if (s.indexOf('read about our culture') !== -1 && s.indexOf('In short') !== -1) {
