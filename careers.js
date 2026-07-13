@@ -119,6 +119,10 @@
         a.style.display = ok ? '' : 'none';
         if (ok) count++;
       });
+      // Listing "Open roles N" tracks the active filter + search; the hero count stays the total.
+      [].forEach.call(counts, function (el) {
+        if (!el.closest('.careers_hero-open-roles')) el.textContent = count;
+      });
       renderEmpty(count);
     }
     // One-at-a-time reveal: each visible row slides/deblurs in, staggered.
@@ -259,13 +263,12 @@
           var img = imgOf(o); if (!img) return;
           var dx = j < i ? -SHIFT : (j > i ? SHIFT : 0);
           img.style.transform = 'translateX(' + dx + 'px)';
-          o.style.zIndex = j === i ? '3' : '';
+          // no z-index bump: keep the natural left-under-right stacking while hovered
         });
       });
       w.addEventListener('mouseleave', function () {
         wraps.forEach(function (o) {
           var img = imgOf(o); if (img) img.style.transform = '';
-          o.style.zIndex = '';
         });
       });
     });
