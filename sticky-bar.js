@@ -70,7 +70,7 @@
   function lorikeetAlign() {
     if (!document.querySelector('.sp2_banner-bottom')) return; // only on bar pages
     var mob = isMobile();
-    var size = 64; // launcher height == bar height (64 on both breakpoints per Figma)
+    var size = 56; // launcher height == bar height (56 on both breakpoints)
     var host = document.getElementById('lorikeet-widget-shadow-host');
     if (host) host.style.setProperty('--lorikeet-button-size', size + 'px', 'important');
     var btn = window.lorikeet && window.lorikeet.$floatingImageButton;
