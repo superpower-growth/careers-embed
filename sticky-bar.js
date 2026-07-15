@@ -58,6 +58,25 @@
   }
 
   // ---------- 3) lorikeet ----------
+  // The nav embed's own sync loop keeps writing btn.style.bottom (plain) every
+  // frame the bar moves, lifting the launcher above the bar and fighting our
+  // !important pin (visible as an up-then-snap). Shadow the .bottom accessor
+  // with a no-op so those writes never land; our setProperty() calls bypass
+  // the JS property and still hit the declaration directly.
+  function lockBottom(btn) {
+    if (btn.__spBottomLocked) return;
+    try {
+      Object.defineProperty(btn.style, 'bottom', {
+        get: function () { return btn.style.getPropertyValue('bottom'); },
+        set: function () { /* swallow nav-embed writes */ },
+        configurable: true
+      });
+      btn.__spBottomLocked = true;
+    } catch (e) {
+      btn.__spBottomLocked = 'unlockable'; // fall back to 300ms re-assertion
+    }
+  }
+
   function lorikeetAlign() {
     if (!document.querySelector('.sp2_banner-bottom')) return; // only on bar pages
     var mob = isMobile();
@@ -67,6 +86,7 @@
     var btn = window.lorikeet && window.lorikeet.$floatingImageButton;
     var bubble = document.querySelector('.lorikeet-promo-bubble');
     if (btn) {
+      lockBottom(btn);
       btn.style.setProperty('width', size + 'px', 'important');
       btn.style.setProperty('height', size + 'px', 'important');
       btn.style.setProperty('border-radius', '14px', 'important');
@@ -85,11 +105,13 @@
         }
       }
       if (mob) {
-        // slide in with the bar; hidden start sits deep below Safari's UI bar
-        btn.style.setProperty('transition', 'opacity .25s ease-in-out, transform .4s ease', 'important');
+        // slide + fade in with the bar; hidden start sits deep below Safari's UI
+        btn.style.setProperty('transition', 'opacity .35s ease, transform .4s ease', 'important');
         btn.style.setProperty('transform', revealed ? 'translateY(0)' : 'translateY(220px)', 'important');
+        btn.style.setProperty('opacity', revealed ? '1' : '0', 'important');
       } else {
         btn.style.removeProperty('transform');
+        btn.style.removeProperty('opacity');
       }
     }
     if (btn && bubble) {
