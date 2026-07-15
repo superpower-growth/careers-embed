@@ -38,6 +38,17 @@
     var lk = window.lorikeet;
     var btn = lk && lk.$floatingImageButton;
     var bubble = document.querySelector('.lorikeet-promo-bubble');
+    var isMobile = window.matchMedia('(max-width: 767px)').matches;
+    if (btn) {
+      // 64px launcher (Figma), radius 14, pinned BESIDE the pill (the pill no
+      // longer spans full width, so the nav embed's sticky-offset lift is moot)
+      btn.style.setProperty('width', '64px', 'important');
+      btn.style.setProperty('height', '64px', 'important');
+      btn.style.setProperty('border-radius', '14px', 'important');
+      // ponytail: static base pin; if a page also runs .sp2_sticky-cta-wrap it
+      // would need the dynamic offset back
+      btn.style.setProperty('bottom', isMobile ? '20px' : '24px', 'important');
+    }
     if (btn && bubble) {
       var r = btn.getBoundingClientRect();
       if (r.width) {
