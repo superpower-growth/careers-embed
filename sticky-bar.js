@@ -81,9 +81,17 @@
       btn.style.setProperty('height', size + 'px', 'important');
       btn.style.setProperty('border-radius', '14px', 'important');
       // widget paints the img on a white background — it fringes through the
-      // anti-aliased rounded corners as a light edge
+      // anti-aliased rounded corners as a light edge. It also sizes the img
+      // from its own config (56px mobile), leaving a transparent ring inside
+      // our 64px button — force the visible tile to fill the button.
       var img = window.lorikeet.$floatingImage;
-      if (img) img.style.setProperty('background', 'transparent', 'important');
+      if (img) {
+        img.style.setProperty('background', 'transparent', 'important');
+        img.style.setProperty('width', size + 'px', 'important');
+        img.style.setProperty('height', size + 'px', 'important');
+        img.style.setProperty('border-radius', '14px', 'important');
+        img.style.setProperty('object-fit', 'cover', 'important');
+      }
       // ponytail: static base pin; pages also running .sp2_sticky-cta-wrap
       // would need the dynamic offset back
       btn.style.setProperty('bottom', mob ? '20px' : '24px', 'important');
