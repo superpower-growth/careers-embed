@@ -40,7 +40,8 @@
     track.style.animationDuration = Math.max(24, (a.getBoundingClientRect().width) / 18) + 's';
   }
   function marquee() {
-    // title only — the subtext row must never marquee (it clips instead)
+    // title only, MOBILE only (Kev) — subtext never marquees, desktop clips
+    if (!window.matchMedia('(max-width: 767px)').matches) return;
     document.querySelectorAll('.sp2_banner-bottom').forEach(function (bar) {
       makeMarquee(bar.querySelector('.banner-bottom_title-wrapper .text-size-medium'));
     });
@@ -69,7 +70,7 @@
   function lorikeetAlign() {
     if (!document.querySelector('.sp2_banner-bottom')) return; // only on bar pages
     var mob = isMobile();
-    var size = mob ? 56 : 64; // launcher height == bar height per breakpoint
+    var size = 64; // launcher height == bar height (64 on both breakpoints per Figma)
     var host = document.getElementById('lorikeet-widget-shadow-host');
     if (host) host.style.setProperty('--lorikeet-button-size', size + 'px', 'important');
     var btn = window.lorikeet && window.lorikeet.$floatingImageButton;
