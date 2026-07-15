@@ -98,11 +98,15 @@
       // would need the dynamic offset back
       btn.style.setProperty('bottom', mob ? '20px' : '24px', 'important');
       // `right` is relative to the widget's host container, not the viewport —
-      // converge on the true viewport inset by measuring and correcting
+      // converge on the true inset by measuring and correcting. All math in
+      // layout-viewport coords (clientWidth), NOT innerWidth: fixed-position
+      // `right` resolves against the layout viewport, so with classic (non-
+      // overlay) scrollbars innerWidth-based values skew by the scrollbar.
+      var vw = document.documentElement.clientWidth;
       var want = mob ? 8 : 24;
       var r0 = btn.getBoundingClientRect();
       if (r0.width) {
-        var err = (window.innerWidth - want) - r0.right; // >0 => move right
+        var err = (vw - want) - r0.right; // >0 => move right
         if (Math.abs(err) > 1) {
           var cur = parseFloat(getComputedStyle(btn).right) || 0;
           btn.style.setProperty('right', (cur - err) + 'px', 'important');
@@ -121,9 +125,10 @@
     if (btn && bubble) {
       var r = btn.getBoundingClientRect();
       if (r.width && (!mob || revealed)) {
-        // sit 12px ABOVE the launcher, right edges aligned
-        bubble.style.setProperty('bottom', Math.round(window.innerHeight - r.top + 12) + 'px', 'important');
-        bubble.style.setProperty('right', Math.round(window.innerWidth - r.right) + 'px', 'important');
+        // sit 12px ABOVE the launcher, right edges aligned (layout-viewport
+        // coords — see note above)
+        bubble.style.setProperty('bottom', Math.round(document.documentElement.clientHeight - r.top + 12) + 'px', 'important');
+        bubble.style.setProperty('right', Math.round(document.documentElement.clientWidth - r.right) + 'px', 'important');
       }
     }
   }
