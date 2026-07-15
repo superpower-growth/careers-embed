@@ -66,7 +66,17 @@
       // ponytail: static base pin; pages also running .sp2_sticky-cta-wrap
       // would need the dynamic offset back
       btn.style.setProperty('bottom', isMobile ? '20px' : '24px', 'important');
-      btn.style.setProperty('right', isMobile ? '8px' : '24px', 'important');
+      // `right` is relative to the widget's host container, not the viewport —
+      // converge on the true viewport inset by measuring and correcting
+      var want = isMobile ? 8 : 24;
+      var r0 = btn.getBoundingClientRect();
+      if (r0.width) {
+        var err = (window.innerWidth - want) - r0.right; // >0 => move right
+        if (Math.abs(err) > 1) {
+          var cur = parseFloat(getComputedStyle(btn).right) || 0;
+          btn.style.setProperty('right', (cur - err) + 'px', 'important');
+        }
+      }
     }
     if (btn && bubble) {
       var r = btn.getBoundingClientRect();
