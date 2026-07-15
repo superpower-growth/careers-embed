@@ -40,20 +40,9 @@
     track.style.animationDuration = Math.max(24, (a.getBoundingClientRect().width) / 18) + 's';
   }
   function marquee() {
+    // title only — the subtext row must never marquee (it clips instead)
     document.querySelectorAll('.sp2_banner-bottom').forEach(function (bar) {
       makeMarquee(bar.querySelector('.banner-bottom_title-wrapper .text-size-medium'));
-      makeMarquee(bar.querySelector('.banner-bottom_text-row'));
-    });
-  }
-  // keep duplicated countdown copies ticking in sync with the live one
-  function syncTimerClones() {
-    document.querySelectorAll('.sp2_banner-bottom .sp-marquee__track').forEach(function (t) {
-      if (t.children.length !== 2) return;
-      var src = t.children[0].querySelectorAll('[data-timer]');
-      var dst = t.children[1].querySelectorAll('[data-timer]');
-      src.forEach(function (s, i) {
-        if (dst[i] && dst[i].textContent !== s.textContent) dst[i].textContent = s.textContent;
-      });
     });
   }
 
@@ -186,7 +175,6 @@
     setInterval(function () {
       lorikeetAlign();
       ensureMobileBubble();
-      syncTimerClones();
     }, 300);
   }
 
