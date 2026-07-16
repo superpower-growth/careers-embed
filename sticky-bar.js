@@ -101,7 +101,7 @@
       // `right` resolves against the layout viewport, so with classic (non-
       // overlay) scrollbars innerWidth-based values skew by the scrollbar.
       var vw = document.documentElement.clientWidth;
-      var want = mob ? 8 : 24;
+      var want = 24; // 1.5rem — matches the global page-padding gutter
       var r0 = btn.getBoundingClientRect();
       if (r0.width) {
         var err = (vw - want) - r0.right; // >0 => move right
@@ -125,7 +125,7 @@
     // diverges from clientWidth when page content overflows horizontally
     document.querySelectorAll('.sp2_banner-bottom').forEach(function (bar) {
       if (mob) {
-        bar.style.setProperty('max-width', (document.documentElement.clientWidth - 88) + 'px', 'important');
+        bar.style.setProperty('max-width', (document.documentElement.clientWidth - 120) + 'px', 'important');
       } else {
         bar.style.removeProperty('max-width');
       }
@@ -194,8 +194,8 @@
       /* even 8px insets around the 40px CTA (right was 12) */
       '.sp2_banner-bottom{padding:0 8px 0 24px !important;}' +
       /* mobile: bar stretches so the gap to the 56px launcher is ALWAYS 1rem:
-         8px edge + bar + 16px + 56px + 8px edge = 100% */
-      '@media (max-width:767px){.sp2_banner-bottom{width:100% !important;max-width:calc(100% - 88px) !important;padding:0 8px 0 24px !important;}}';
+         1.5rem edge + bar + 16px + 56px + 1.5rem edge = 100% (page-padding gutters) */
+      '@media (max-width:767px){.sp2_banner-bottom{left:1.5rem !important;width:100% !important;max-width:calc(100% - 120px) !important;padding:0 8px 0 24px !important;}}';
     document.body.appendChild(st);
   }
 
