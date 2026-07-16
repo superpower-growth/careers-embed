@@ -120,6 +120,16 @@
         btn.style.removeProperty('opacity');
       }
     }
+    // mobile: pin the bar's width in px from the same clientWidth reference
+    // the launcher correction uses — CSS % resolves against the ICB, which
+    // diverges from clientWidth when page content overflows horizontally
+    document.querySelectorAll('.sp2_banner-bottom').forEach(function (bar) {
+      if (mob) {
+        bar.style.setProperty('max-width', (document.documentElement.clientWidth - 88) + 'px', 'important');
+      } else {
+        bar.style.removeProperty('max-width');
+      }
+    });
     if (btn && bubble) {
       var r = btn.getBoundingClientRect();
       if (r.width && (!mob || revealed)) {
