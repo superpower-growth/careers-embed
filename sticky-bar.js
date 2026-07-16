@@ -173,7 +173,24 @@
     }, 5000);
   }
 
+  // v15 style deltas — the component embed can no longer be edited via the
+  // API surface, so they ride here; appended to <body> so they cascade after
+  // the embed's stylesheet (same specificity + !important, later wins).
+  function injectStyleDeltas() {
+    if (document.getElementById('sp-bar-deltas')) return;
+    var st = document.createElement('style');
+    st.id = 'sp-bar-deltas';
+    st.textContent =
+      /* even 8px insets around the 40px CTA (right was 12) */
+      '.sp2_banner-bottom{padding:0 8px 0 24px !important;}' +
+      /* mobile: bar stretches so the gap to the 56px launcher is ALWAYS 1rem:
+         8px edge + bar + 16px + 56px + 8px edge = 100% */
+      '@media (max-width:767px){.sp2_banner-bottom{width:100% !important;max-width:calc(100% - 88px) !important;padding:0 8px 0 24px !important;}}';
+    document.body.appendChild(st);
+  }
+
   function boot() {
+    injectStyleDeltas();
     window.addEventListener('scroll', reveal, { passive: true });
     reveal();
     setTimeout(marquee, 400);
