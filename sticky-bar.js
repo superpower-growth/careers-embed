@@ -15,8 +15,12 @@
   // ---------- 1) scroll reveal ----------
   function reveal() {
     revealed = window.scrollY > 10;
+    // retract at the very bottom so footer links stay clickable
+    var doc = document.documentElement;
+    var atBottom = window.scrollY + window.innerHeight >= doc.scrollHeight - 80;
+    var showBar = revealed && !atBottom;
     document.querySelectorAll('.sp2_banner-bottom').forEach(function (b) {
-      b.classList.toggle('sp-shown', revealed);
+      b.classList.toggle('sp-shown', showBar);
     });
   }
 
