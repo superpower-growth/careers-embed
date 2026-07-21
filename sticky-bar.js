@@ -12,6 +12,25 @@
 
   function isMobile() { return window.matchMedia('(max-width: 767px)').matches; }
 
+  // Is Lorikeet on this page? The nav "Visibility Lorikeet" toggle either
+  // renders the Lorikeet Initialize embed or strips it entirely (Webflow drops
+  // hidden component elements from published HTML). With no launcher the mobile
+  // bar reclaims the reserved space and goes full width (gutters only). Detect
+  // synchronously via the embed's widget-CDN import so there's no load flash on
+  // pages that DO have it. Page state is static, so cache after the first read.
+  var _hasLorikeet = null;
+  function hasLorikeet() {
+    if (_hasLorikeet !== null) return _hasLorikeet;
+    if (window.lorikeet || document.getElementById('lorikeet-widget-shadow-host')) {
+      _hasLorikeet = true;
+    } else {
+      _hasLorikeet = Array.prototype.some.call(document.scripts, function (s) {
+        return s.textContent && s.textContent.indexOf('resources.lorikeetcx.ai') !== -1;
+      });
+    }
+    return _hasLorikeet;
+  }
+
   // ---------- 1) scroll reveal ----------
   function reveal() {
     revealed = window.scrollY > 10;
@@ -129,7 +148,10 @@
     // diverges from clientWidth when page content overflows horizontally
     document.querySelectorAll('.sp2_banner-bottom').forEach(function (bar) {
       if (mob) {
-        bar.style.setProperty('max-width', (document.documentElement.clientWidth - 120) + 'px', 'important');
+        // reserve for the launcher ONLY when Lorikeet is on the page:
+        // 120 = 24 gutter + 16 gap + 56 launcher + 24 gutter; 48 = gutters only
+        var reserve = hasLorikeet() ? 120 : 48;
+        bar.style.setProperty('max-width', (document.documentElement.clientWidth - reserve) + 'px', 'important');
       } else {
         bar.style.removeProperty('max-width');
       }
@@ -194,12 +216,16 @@
     if (document.getElementById('sp-bar-deltas')) return;
     var st = document.createElement('style');
     st.id = 'sp-bar-deltas';
+    // pre-JS-tick fallback; the 300ms lorikeetAlign loop re-pins max-width in px.
+    // 120 reserves the launcher (Lorikeet on page); 48 = gutters only (full width)
+    var reserve = hasLorikeet() ? 120 : 48;
     st.textContent =
       /* even 8px insets around the 40px CTA (right was 12) */
       '.sp2_banner-bottom{padding:0 8px 0 24px !important;}' +
-      /* mobile: bar stretches so the gap to the 56px launcher is ALWAYS 1rem:
-         1.5rem edge + bar + 16px + 56px + 1.5rem edge = 100% (page-padding gutters) */
-      '@media (max-width:767px){.sp2_banner-bottom{left:1.5rem !important;width:100% !important;max-width:calc(100% - 120px) !important;padding:0 8px 0 24px !important;}}';
+      /* mobile: with Lorikeet, gap to the 56px launcher is ALWAYS 1rem
+         (1.5rem edge + bar + 16px + 56px + 1.5rem edge); without it the bar
+         goes full width between the 1.5rem page-padding gutters. */
+      '@media (max-width:767px){.sp2_banner-bottom{left:1.5rem !important;width:100% !important;max-width:calc(100% - ' + reserve + 'px) !important;padding:0 8px 0 24px !important;}}';
     document.body.appendChild(st);
   }
 
