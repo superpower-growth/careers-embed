@@ -66,6 +66,10 @@
     var rawTerm = '';
     var searchInput = null;
 
+    // The team label a row shows. Ashby's department and team match except for Member Success
+    // (department "Operations"), and the row renders department — so sort on the same value.
+    function teamOf(j) { return ((j.department || j.team || '') + '').trim(); }
+
     // Empty state, shown when no role survives the current pill + search. Lives inside the list so it
     // sits where the rows would be; render() removes only the rows, never this node.
     var empty = document.createElement('div');
@@ -148,7 +152,7 @@
       if (!pillWrap) { wirePills(); return; }
       var seen = {}, order = [];
       jobs.forEach(function (j) {
-        var label = ((j.department || j.team || '') + '').trim();
+        var label = teamOf(j);
         var s = slug(label);
         if (s && !seen[s]) { seen[s] = label; order.push(s); }
       });
@@ -163,9 +167,13 @@
       wirePills();
     }
     function render(jobs) {
+      jobs = jobs.slice().sort(function (a, b) {
+        return teamOf(a).localeCompare(teamOf(b)) ||
+          (a.title || '').trim().localeCompare((b.title || '').trim());
+      });
       [].slice.call(list.querySelectorAll('.careers_role-item')).forEach(function (n) { n.remove(); });
       jobs.forEach(function (j) {
-        var dept = ((j.department || j.team || '') + '').trim();
+        var dept = teamOf(j);
         var a = document.createElement('a');
         a.className = 'careers_role-item'; a.href = j.jobUrl || j.applyUrl || '#';
         a.target = '_blank'; a.rel = 'noopener noreferrer'; a.setAttribute('data-dept', slug(dept));
