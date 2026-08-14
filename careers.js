@@ -168,9 +168,20 @@
       pillOverflow();
     }
     // The filter row is one nowrap scroller. Flag which edges still have pills off-screen so the
-    // CSS can fade that edge and show the chevron hint.
+    // CSS can fade that edge, and give the chevron a real button so it scrolls when clicked.
     function pillOverflow() {
       if (!pillWrap) return;
+      var hint = pillWrap.querySelector('.careers_pills-hint');
+      if (!hint) {
+        hint = document.createElement('button');
+        hint.type = 'button';
+        hint.className = 'careers_pills-hint';
+        hint.setAttribute('aria-label', 'Scroll categories right');
+        hint.addEventListener('click', function () {
+          pillWrap.scrollBy({ left: Math.round(pillWrap.clientWidth * 0.8), behavior: 'smooth' });
+        });
+      }
+      pillWrap.appendChild(hint); // buildPills clears innerHTML, so re-attach every time
       function sync() {
         var max = pillWrap.scrollWidth - pillWrap.clientWidth;
         pillWrap.classList.toggle('has-start', pillWrap.scrollLeft > 1);
@@ -179,9 +190,15 @@
       if (!pillWrap.dataset.overflowWired) {
         pillWrap.addEventListener('scroll', sync, { passive: true });
         window.addEventListener('resize', sync, { passive: true });
+        // Measuring at build time reads fallback-font widths — the row was 717px wide then and
+        // 1211px once the webfont swapped, so the end flag never got set. Re-measure after both.
+        if (window.ResizeObserver) new ResizeObserver(sync).observe(pillWrap);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(sync).catch(function () {});
         pillWrap.dataset.overflowWired = '1';
       }
       sync();
+      requestAnimationFrame(sync);
+      setTimeout(sync, 600);
     }
     function render(jobs) {
       jobs = jobs.slice().sort(function (a, b) {
