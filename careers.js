@@ -234,6 +234,12 @@
   function team() {
     var root = document.getElementById('careers-team');
     if (!root) return;
+    // The headless API cannot set a "current collection item" link target, so the row carries the
+    // item slug as a data attribute and the real URL is assembled here.
+    [].slice.call(root.querySelectorAll('.careers_team-row')).forEach(function (a) {
+      var s = a.getAttribute('data-team-slug');
+      if (s) a.setAttribute('href', '/blog/' + s);
+    });
     if (root.querySelectorAll('.w-dyn-item').length > 8) root.classList.add('has-more');
     var btn = root.querySelector('.careers_team-more');
     if (!btn) return;
