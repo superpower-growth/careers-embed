@@ -322,44 +322,9 @@
     });
   }
 
-  // Hero "View roles →": isolate the arrow so it can slide on hover (CSS handles the transition).
-  function viewRolesArrow() {
-    var a = document.querySelector('.careers_hero-view-roles');
-    if (!a || a.querySelector('.careers_arrow')) return;
-    a.innerHTML = a.innerHTML.replace(/→/, '<span class="careers_arrow">→</span>');
-  }
-
-  // Contact card: the paper-plane belongs on the right of the card and filled, not stacked above the
-  // copy as an outline. The icon itself is injected by the separate careersPaperPlaneIcon script, so
-  // retry once in case it lands after us.
-  function contactCard() {
-    function apply() {
-      var card = document.querySelector('.careers_contact-card');
-      var svg = card && card.querySelector('svg');
-      if (!svg) return false;
-      svg.removeAttribute('style');
-      svg.setAttribute('fill', 'currentColor');
-      svg.setAttribute('stroke', 'none');
-      svg.setAttribute('viewBox', '0 0 24 24');
-      svg.innerHTML = '<path d="M22 2L15 22L11 13L2 9L22 2Z"></path>';
-      svg.setAttribute('class', 'careers_contact-icon');
-      card.appendChild(svg); // card is flex + space-between → icon lands right, vertically centred
-      return true;
-    }
-    if (!apply()) setTimeout(apply, 400);
-  }
-
-  // On mobile the hero box is portrait, so `cover` renders the image at roughly twice its CSS width.
-  // Widen `sizes` so the browser picks a large enough srcset candidate instead of upscaling a small one.
-  function heroImage() {
-    var img = document.querySelector('.careers_hero-media-img');
-    if (!img || !window.matchMedia) return;
-    if (matchMedia('(max-width: 767px)').matches) img.sizes = '200vw';
-  }
-
   function boot() {
-    copyFixes(); viewRolesArrow(); heroImage(); parallax(); roles(); team();
-    heroReveal(); scrollReveal(); contactCard();
+    copyFixes(); parallax(); roles(); team();
+    heroReveal(); scrollReveal();
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot, { once: true }); } else { boot(); }
 })();
