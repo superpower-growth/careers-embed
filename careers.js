@@ -19,8 +19,8 @@
     n.style.opacity = '1'; n.style.transform = 'none'; n.style.filter = 'blur(0)';
   }
 
-  // Hero silhouette parallax. Scales the image up so there is headroom to travel, then translates
-  // within that headroom on scroll — travel is derived from container height so it never reveals a gap.
+  // Hero parallax. Scales the image up so there is headroom to travel, then translates within that
+  // headroom on scroll — travel is derived from container height so it never reveals a gap.
   function parallax() {
     var m = document.querySelector('.careers_hero-media');
     var img = m && m.querySelector('.careers_hero-media-img');
@@ -29,7 +29,8 @@
     // No parallax on mobile: the scale needed for headroom zooms the portrait crop past the subject's
     // head, and the design shows a plain cover crop there.
     if (window.matchMedia && matchMedia('(max-width: 767px)').matches) { img.style.transform = 'none'; return; }
-    var SCALE = 1.5;                                      // more headroom → more visible travel
+    // Kept low deliberately: the hero is a group photo, and anything past ~1.1 crops heads and feet.
+    var SCALE = 1.08;
     img.style.willChange = 'transform';
     var target = 0, current = 0, raf = null;
     function targetY() {
