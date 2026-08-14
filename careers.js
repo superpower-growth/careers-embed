@@ -3,7 +3,6 @@
 (function () {
   'use strict';
   var ASHBY = 'https://api.ashbyhq.com/posting-api/job-board/superpower';
-  var TEAM = ['Max Marchione, Founder', 'Hannah Ahn, Head of Design', 'Daniel Nemani, Product', 'Grace Guerrero, Designer'];
   function slug(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); }
 
   // Shared reveal: slide up from `dy` px + blur 5px -> 0 + fade in. No scale — scaling a full-width
@@ -230,55 +229,17 @@
       .catch(function () { });
   }
 
-  // Meet the team: wrap each avatar, inject a name+title tooltip, and on hover push the neighbouring
-  // avatars away from the hovered one (rather than scaling it) — matches the Figma prototype.
-  function avatars() {
-    [].slice.call(document.querySelectorAll('.careers_team-avatar')).forEach(function (av, i) {
-      if (av.parentNode && av.parentNode.classList && av.parentNode.classList.contains('careers_av-wrap')) return;
-      var wrap = document.createElement('span'); wrap.className = 'careers_av-wrap';
-      wrap.style.marginLeft = getComputedStyle(av).marginLeft; av.style.marginLeft = '0';
-      av.parentNode.insertBefore(wrap, av); wrap.appendChild(av);
-      var t = document.createElement('span'); t.className = 'careers_av-tooltip';
-      t.textContent = TEAM[i] || av.getAttribute('alt') || ''; wrap.appendChild(t);
-    });
-    var wraps = [].slice.call(document.querySelectorAll('.careers_av-wrap'));
-    var touch = window.matchMedia && matchMedia('(hover: none)').matches;
-    function imgOf(w) { return w.querySelector('.careers_team-avatar'); }
-    if (touch) {
-      // Tap: black outline on the tapped avatar, others grey out, name pill lands on the
-      // left of the team pill (CSS in the footer freeform block). Tap again / outside clears.
-      var pill = document.querySelector('.careers_team-pill');
-      if (!pill) return;
-      var clearOpen = function () {
-        pill.classList.remove('has-open');
-        wraps.forEach(function (w) { w.classList.remove('is-open'); });
-      };
-      wraps.forEach(function (w) {
-        w.addEventListener('click', function (e) {
-          e.stopPropagation();
-          var was = w.classList.contains('is-open');
-          clearOpen();
-          if (!was) { w.classList.add('is-open'); pill.classList.add('has-open'); }
-        });
-      });
-      document.addEventListener('click', function (e) { if (!pill.contains(e.target)) clearOpen(); });
-      return;
-    }
-    var SHIFT = 8; // px each neighbour moves away from the hovered avatar
-    wraps.forEach(function (w, i) {
-      w.addEventListener('mouseenter', function () {
-        wraps.forEach(function (o, j) {
-          var img = imgOf(o); if (!img) return;
-          var dx = j < i ? -SHIFT : (j > i ? SHIFT : 0);
-          img.style.transform = 'translateX(' + dx + 'px)';
-          // no z-index bump: keep the natural left-under-right stacking while hovered
-        });
-      });
-      w.addEventListener('mouseleave', function () {
-        wraps.forEach(function (o) {
-          var img = imgOf(o); if (img) img.style.transform = '';
-        });
-      });
+  // Meet the team: the list is a CMS Collection List (Blogs filtered to the Team category).
+  // CSS caps it at 8 rows; reveal the rest in place rather than paging to a separate index.
+  function team() {
+    var root = document.getElementById('careers-team');
+    if (!root) return;
+    if (root.querySelectorAll('.w-dyn-item').length > 8) root.classList.add('has-more');
+    var btn = root.querySelector('.careers_team-more');
+    if (!btn) return;
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      root.classList.add('is-expanded');
     });
   }
 
@@ -389,7 +350,7 @@
   }
 
   function boot() {
-    copyFixes(); viewRolesArrow(); heroImage(); parallax(); roles(); avatars();
+    copyFixes(); viewRolesArrow(); heroImage(); parallax(); roles(); team();
     heroReveal(); scrollReveal(); contactCard();
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot, { once: true }); } else { boot(); }
