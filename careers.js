@@ -313,8 +313,7 @@
   }
 
   // Copy fixes, all per the design:
-  //  - hero H1 breaks after the muted "Our mission is to" so "enhance" starts line 2
-  //  - "You can read about our culture here." and "In short, ..." sit on separate lines
+  //  - hero H1 breaks after the muted "Our mission is to" so "extend" starts line 2
   //  - the last words of "...than your resume." are bound with non-breaking spaces so
   //    "resume." can never sit orphaned on its own line (no break after "exits." — R2)
   function copyFixes() {
@@ -331,10 +330,6 @@
         s = s.replace('exits.<br>We care', 'exits. We care'); // undo the break if the static markup kept it
         s = s.replace('than your resume', 'than' + nb + 'your' + nb + 'resume');
         p.innerHTML = s;
-      } else if (s.indexOf('read about our culture') !== -1 && s.indexOf('In short') !== -1) {
-        p.innerHTML = s.replace(/\.\s+In short/, '.<br>In short');
-      } else if (s.indexOf('open to anyone great') !== -1 && s.indexOf('We often') !== -1) {
-        p.innerHTML = s.replace(/\.\s+We often/, '.<br>We often'); // roles panel copy sits on 2 lines
       }
     });
   }
