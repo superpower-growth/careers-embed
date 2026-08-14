@@ -171,17 +171,22 @@
     // CSS can fade that edge, and give the chevron a real button so it scrolls when clicked.
     function pillOverflow() {
       if (!pillWrap) return;
-      var hint = pillWrap.querySelector('.careers_pills-hint');
-      if (!hint) {
-        hint = document.createElement('button');
-        hint.type = 'button';
-        hint.className = 'careers_pills-hint';
-        hint.setAttribute('aria-label', 'Scroll categories right');
-        hint.addEventListener('click', function () {
-          pillWrap.scrollBy({ left: Math.round(pillWrap.clientWidth * 0.8), behavior: 'smooth' });
+      function mkHint(dir) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'careers_pills-hint is-' + dir;
+        b.setAttribute('aria-label', dir === 'next' ? 'Scroll categories right' : 'Scroll categories left');
+        b.addEventListener('click', function () {
+          var by = Math.round(pillWrap.clientWidth * 0.8);
+          pillWrap.scrollBy({ left: dir === 'next' ? by : -by, behavior: 'smooth' });
         });
+        return b;
       }
-      pillWrap.appendChild(hint); // buildPills clears innerHTML, so re-attach every time
+      // buildPills clears innerHTML, so look them up and re-attach on every call
+      var prev = pillWrap.querySelector('.careers_pills-hint.is-prev') || mkHint('prev');
+      var next = pillWrap.querySelector('.careers_pills-hint.is-next') || mkHint('next');
+      pillWrap.insertBefore(prev, pillWrap.firstChild);
+      pillWrap.appendChild(next);
       function sync() {
         var max = pillWrap.scrollWidth - pillWrap.clientWidth;
         pillWrap.classList.toggle('has-start', pillWrap.scrollLeft > 1);
