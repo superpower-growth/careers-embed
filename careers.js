@@ -165,6 +165,23 @@
       mk('all', 'All');
       order.forEach(function (s) { mk(s, seen[s]); });
       wirePills();
+      pillOverflow();
+    }
+    // The filter row is one nowrap scroller. Flag which edges still have pills off-screen so the
+    // CSS can fade that edge and show the chevron hint.
+    function pillOverflow() {
+      if (!pillWrap) return;
+      function sync() {
+        var max = pillWrap.scrollWidth - pillWrap.clientWidth;
+        pillWrap.classList.toggle('has-start', pillWrap.scrollLeft > 1);
+        pillWrap.classList.toggle('has-end', max > 1 && pillWrap.scrollLeft < max - 1);
+      }
+      if (!pillWrap.dataset.overflowWired) {
+        pillWrap.addEventListener('scroll', sync, { passive: true });
+        window.addEventListener('resize', sync, { passive: true });
+        pillWrap.dataset.overflowWired = '1';
+      }
+      sync();
     }
     function render(jobs) {
       jobs = jobs.slice().sort(function (a, b) {
@@ -178,7 +195,7 @@
         a.className = 'careers_role-item'; a.href = j.jobUrl || j.applyUrl || '#';
         a.target = '_blank'; a.rel = 'noopener noreferrer'; a.setAttribute('data-dept', slug(dept));
         var d = document.createElement('div'); d.className = 'careers_role-dept';
-        var dp = document.createElement('p'); dp.className = 'text-size-small careers_text-muted'; dp.textContent = dept; d.appendChild(dp);
+        var dp = document.createElement('p'); dp.className = 'text-size-medium careers_text-muted'; dp.textContent = dept; d.appendChild(dp);
         var tp = document.createElement('p'); tp.className = 'text-size-medium'; tp.textContent = (j.title || '').trim();
         a.appendChild(d); a.appendChild(tp); list.appendChild(a);
       });
