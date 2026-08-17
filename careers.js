@@ -373,24 +373,23 @@
     // below the navbar's real height instead — it shrinks from 89 to 81 once you scroll, and mobile
     // differs again, so read it rather than hard-coding.
     var navbar = document.querySelector('.sp-navbar3_component');
-    // Tuck 10px under the navbar rather than butting against it: the navbar shrinks 89 -> 81 as you
-    // start scrolling, and any gap left mid-shrink shows page content sliding through the sliver.
-    // The navbar sits at z-index 9999, so the overlap is hidden.
-    function barTop() {
-      if (!navbar) return 0;
-      var top = Math.max(0, Math.round(navbar.getBoundingClientRect().height) - 10);
-      bar.style.top = top + 'px';
-      return top;
-    }
+    // The navbar's own box is transparent and 16px taller than the pill you can actually see, so
+    // measuring it leaves a gap the page scrolls through. Measure the pill, pin the bar at 0 so its
+    // background covers the whole strip, and pad down to clear the pill.
+    var pill = document.querySelector('.sp-navbar3_inner') || navbar;
+    var inner = bar.querySelector('.careers_secnav-inner');
+    function navPad() { return (pill ? Math.round(pill.getBoundingClientRect().bottom) : 0) + 24; }
 
     function setActive() {
-      var top = barTop();
-      // Once pinned, drop the 64px of lead-in the resting band carries, or the links sit miles below
-      // the navbar. The resting height stays as drawn.
-      bar.classList.toggle('is-stuck', Math.round(bar.getBoundingClientRect().top) <= top + 1);
-      // Sits below the landing offset (top + barH + 8) on purpose: level with it, a clicked section
-      // lands exactly on the line and loses the <= test to sub-pixel rounding, lighting the previous.
-      var line = top + barH() + 16;
+      // Once pinned, swap the 64px of lead-in the resting band carries for a pad that clears the
+      // navbar exactly. The resting height stays as drawn.
+      var stuck = Math.round(bar.getBoundingClientRect().top) <= 1;
+      bar.classList.toggle('is-stuck', stuck);
+      var pad = stuck ? navPad() + 'px' : '';
+      if (inner.style.paddingTop !== pad) inner.style.paddingTop = pad;
+      // Sits below the landing offset (barH + 8) on purpose: level with it, a clicked section lands
+      // exactly on the line and loses the <= test to sub-pixel rounding, lighting the previous one.
+      var line = barH() + 16;
       var current = targets[0];
       targets.forEach(function (t) {
         if (t.el.getBoundingClientRect().top <= line) current = t;
@@ -421,8 +420,10 @@
       if (!el) return;
       e.preventDefault();
       e.stopPropagation();
-      bar.classList.add('is-stuck'); // it is about to be, and the offset depends on its stuck height
-      window.scrollTo({ top: el.getBoundingClientRect().top + window.pageYOffset - barTop() - barH() - 8, behavior: 'smooth' });
+      // it is about to be stuck, and the landing offset depends on its stuck height
+      bar.classList.add('is-stuck');
+      inner.style.paddingTop = navPad() + 'px';
+      window.scrollTo({ top: el.getBoundingClientRect().top + window.pageYOffset - barH() - 8, behavior: 'smooth' });
     }, true);
 
     window.addEventListener('scroll', setActive, { passive: true });
