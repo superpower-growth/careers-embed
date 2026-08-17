@@ -391,14 +391,8 @@
       else if (r > inner.scrollLeft + inner.clientWidth) inner.scrollTo({ left: r - inner.clientWidth + 24, behavior: 'smooth' });
     }
 
-    targets.forEach(function (t) {
-      t.link.addEventListener('click', function (e) {
-        e.preventDefault();
-        var y = t.el.getBoundingClientRect().top + window.pageYOffset - barH();
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      });
-    });
-
+    // No click handler: Webflow binds its own smooth scroll to same-page anchors and wins, so a
+    // custom one just fights it. The landing offset comes from scroll-margin-top in the CSS instead.
     window.addEventListener('scroll', setActive, { passive: true });
     window.addEventListener('resize', setActive, { passive: true });
     setActive();
