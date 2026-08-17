@@ -391,8 +391,19 @@
       else if (r > inner.scrollLeft + inner.clientWidth) inner.scrollTo({ left: r - inner.clientWidth + 24, behavior: 'smooth' });
     }
 
-    // No click handler: Webflow binds its own smooth scroll to same-page anchors and wins, so a
-    // custom one just fights it. The landing offset comes from scroll-margin-top in the CSS instead.
+    // Webflow binds its own smooth scroll to same-page anchors and it ignores scroll-margin-top, so
+    // headings land under the bar. Claim the click on the document in the CAPTURE phase — that runs
+    // before any listener Webflow bound on the anchor or on document bubble.
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('.careers_secnav-link');
+      if (!a) return;
+      var el = document.querySelector(a.getAttribute('href'));
+      if (!el) return;
+      e.preventDefault();
+      e.stopPropagation();
+      window.scrollTo({ top: el.getBoundingClientRect().top + window.pageYOffset - barH() - 8, behavior: 'smooth' });
+    }, true);
+
     window.addEventListener('scroll', setActive, { passive: true });
     window.addEventListener('resize', setActive, { passive: true });
     setActive();
