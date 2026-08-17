@@ -369,10 +369,25 @@
 
     function barH() { return Math.round(bar.getBoundingClientRect().height); }
 
+    // The site navbar is fixed at z-index 9999, so a bar pinned at top:0 slides underneath it. Pin
+    // below the navbar's real height instead — it shrinks from 89 to 81 once you scroll, and mobile
+    // differs again, so read it rather than hard-coding.
+    var navbar = document.querySelector('.sp-navbar3_component');
+    function barTop() {
+      if (!navbar) return 0;
+      var h = Math.round(navbar.getBoundingClientRect().height);
+      bar.style.top = h + 'px';
+      return h;
+    }
+
     function setActive() {
-      // Sits below the landing offset (barH + 8) on purpose: level with it, a clicked section lands
-      // exactly on the line and loses the <= test to sub-pixel rounding, lighting the previous one.
-      var line = barH() + 16;
+      var top = barTop();
+      // Once pinned, drop the 64px of lead-in the resting band carries, or the links sit miles below
+      // the navbar. The resting height stays as drawn.
+      bar.classList.toggle('is-stuck', Math.round(bar.getBoundingClientRect().top) <= top + 1);
+      // Sits below the landing offset (top + barH + 8) on purpose: level with it, a clicked section
+      // lands exactly on the line and loses the <= test to sub-pixel rounding, lighting the previous.
+      var line = top + barH() + 16;
       var current = targets[0];
       targets.forEach(function (t) {
         if (t.el.getBoundingClientRect().top <= line) current = t;
@@ -403,7 +418,8 @@
       if (!el) return;
       e.preventDefault();
       e.stopPropagation();
-      window.scrollTo({ top: el.getBoundingClientRect().top + window.pageYOffset - barH() - 8, behavior: 'smooth' });
+      bar.classList.add('is-stuck'); // it is about to be, and the offset depends on its stuck height
+      window.scrollTo({ top: el.getBoundingClientRect().top + window.pageYOffset - barTop() - barH() - 8, behavior: 'smooth' });
     }, true);
 
     window.addEventListener('scroll', setActive, { passive: true });
