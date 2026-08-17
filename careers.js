@@ -167,10 +167,18 @@
       wirePills();
       pillOverflow();
     }
-    // The filter row is one nowrap scroller. Flag which edges still have pills off-screen so the
-    // CSS can fade that edge, and give the chevron a real button so it scrolls when clicked.
+    // The filter row is one nowrap scroller. The hints live in a shell wrapped around the scroller,
+    // not inside it, so they neither scroll with the pills nor get erased by buildPills's innerHTML
+    // reset. The edge flags go on the shell because the CSS fade and the hints both hang off them.
     function pillOverflow() {
       if (!pillWrap) return;
+      var shell = pillWrap.parentNode;
+      if (!shell || !shell.classList.contains('careers_pills-shell')) {
+        shell = document.createElement('div');
+        shell.className = 'careers_pills-shell';
+        pillWrap.parentNode.insertBefore(shell, pillWrap);
+        shell.appendChild(pillWrap);
+      }
       function mkHint(dir) {
         var b = document.createElement('button');
         b.type = 'button';
@@ -180,17 +188,13 @@
           var by = Math.round(pillWrap.clientWidth * 0.8);
           pillWrap.scrollBy({ left: dir === 'next' ? by : -by, behavior: 'smooth' });
         });
-        return b;
+        shell.appendChild(b);
       }
-      // buildPills clears innerHTML, so look them up and re-attach on every call
-      var prev = pillWrap.querySelector('.careers_pills-hint.is-prev') || mkHint('prev');
-      var next = pillWrap.querySelector('.careers_pills-hint.is-next') || mkHint('next');
-      pillWrap.insertBefore(prev, pillWrap.firstChild);
-      pillWrap.appendChild(next);
+      if (!shell.querySelector('.careers_pills-hint')) { mkHint('prev'); mkHint('next'); }
       function sync() {
         var max = pillWrap.scrollWidth - pillWrap.clientWidth;
-        pillWrap.classList.toggle('has-start', pillWrap.scrollLeft > 1);
-        pillWrap.classList.toggle('has-end', max > 1 && pillWrap.scrollLeft < max - 1);
+        shell.classList.toggle('has-start', pillWrap.scrollLeft > 1);
+        shell.classList.toggle('has-end', max > 1 && pillWrap.scrollLeft < max - 1);
       }
       if (!pillWrap.dataset.overflowWired) {
         pillWrap.addEventListener('scroll', sync, { passive: true });
