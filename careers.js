@@ -370,7 +370,9 @@
     function barH() { return Math.round(bar.getBoundingClientRect().height); }
 
     function setActive() {
-      var line = barH() + 8;
+      // Sits below the landing offset (barH + 8) on purpose: level with it, a clicked section lands
+      // exactly on the line and loses the <= test to sub-pixel rounding, lighting the previous one.
+      var line = barH() + 16;
       var current = targets[0];
       targets.forEach(function (t) {
         if (t.el.getBoundingClientRect().top <= line) current = t;
