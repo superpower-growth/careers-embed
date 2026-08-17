@@ -373,11 +373,14 @@
     // below the navbar's real height instead — it shrinks from 89 to 81 once you scroll, and mobile
     // differs again, so read it rather than hard-coding.
     var navbar = document.querySelector('.sp-navbar3_component');
+    // Tuck 10px under the navbar rather than butting against it: the navbar shrinks 89 -> 81 as you
+    // start scrolling, and any gap left mid-shrink shows page content sliding through the sliver.
+    // The navbar sits at z-index 9999, so the overlap is hidden.
     function barTop() {
       if (!navbar) return 0;
-      var h = Math.round(navbar.getBoundingClientRect().height);
-      bar.style.top = h + 'px';
-      return h;
+      var top = Math.max(0, Math.round(navbar.getBoundingClientRect().height) - 10);
+      bar.style.top = top + 'px';
+      return top;
     }
 
     function setActive() {
