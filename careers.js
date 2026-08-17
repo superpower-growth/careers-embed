@@ -356,9 +356,57 @@
     });
   }
 
+  // Sticky section nav: highlight the section currently under the bar, and offset anchor jumps by
+  // the bar's own height so the target heading is not hidden beneath it.
+  function sectionNav() {
+    var bar = document.getElementById('careers-secnav');
+    if (!bar) return;
+    var links = [].slice.call(bar.querySelectorAll('.careers_secnav-link'));
+    var targets = links.map(function (a) {
+      return { link: a, el: document.querySelector(a.getAttribute('href')) };
+    }).filter(function (t) { return t.el; });
+    if (!targets.length) return;
+
+    function barH() { return Math.round(bar.getBoundingClientRect().height); }
+
+    function setActive() {
+      var line = barH() + 8;
+      var current = targets[0];
+      targets.forEach(function (t) {
+        if (t.el.getBoundingClientRect().top <= line) current = t;
+      });
+      // past the last section's end, keep the last one lit rather than snapping back
+      targets.forEach(function (t) {
+        t.link.classList.toggle('is-active', t === current);
+        if (t === current) keepInView(t.link);
+      });
+    }
+
+    // the bar scrolls horizontally on mobile — bring the active item into view there
+    function keepInView(a) {
+      var inner = a.parentElement;
+      if (inner.scrollWidth <= inner.clientWidth + 1) return;
+      var l = a.offsetLeft, r = l + a.offsetWidth;
+      if (l < inner.scrollLeft) inner.scrollTo({ left: Math.max(0, l - 24), behavior: 'smooth' });
+      else if (r > inner.scrollLeft + inner.clientWidth) inner.scrollTo({ left: r - inner.clientWidth + 24, behavior: 'smooth' });
+    }
+
+    targets.forEach(function (t) {
+      t.link.addEventListener('click', function (e) {
+        e.preventDefault();
+        var y = t.el.getBoundingClientRect().top + window.pageYOffset - barH();
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      });
+    });
+
+    window.addEventListener('scroll', setActive, { passive: true });
+    window.addEventListener('resize', setActive, { passive: true });
+    setActive();
+  }
+
   function boot() {
     copyFixes(); parallax(); roles(); team();
-    heroReveal(); scrollReveal();
+    heroReveal(); scrollReveal(); sectionNav();
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot, { once: true }); } else { boot(); }
 })();
